@@ -1,109 +1,84 @@
-
 -- Create database
 CREATE DATABASE IF NOT EXISTS sreemeditec_db;
 USE sreemeditec_db;
 
 -- Users table
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
     phone VARCHAR(20),
-    address TEXT,
-    role ENUM('user', 'admin') DEFAULT 'user',
-    email_verified BOOLEAN DEFAULT FALSE,
+    role ENUM('customer', 'admin') DEFAULT 'customer',
+    email_confirmed BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Categories table
-CREATE TABLE IF NOT EXISTS categories (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    slug VARCHAR(100) UNIQUE NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 -- Products table
-CREATE TABLE IF NOT EXISTS products (
+CREATE TABLE products (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     description TEXT,
-    price DECIMAL(10,2) NOT NULL,
-    category_id INT,
-    brand VARCHAR(100),
-    model VARCHAR(100),
+    price DECIMAL(10, 2) NOT NULL,
     image_url VARCHAR(500),
+    category VARCHAR(100),
     stock_quantity INT DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (category_id) REFERENCES categories(id)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Cart items table
-CREATE TABLE IF NOT EXISTS cart_items (
+-- Cart table
+CREATE TABLE cart (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT,
-    product_id INT,
+    user_id INT NOT NULL,
+    product_id INT NOT NULL,
     quantity INT NOT NULL DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_user_product (user_id, product_id)
 );
 
 -- Orders table
-CREATE TABLE IF NOT EXISTS orders (
+CREATE TABLE orders (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT,
-    total_amount DECIMAL(10,2) NOT NULL,
-    status ENUM('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled') DEFAULT 'pending',
+    user_id INT NOT NULL,
+    total_amount DECIMAL(10, 2) NOT NULL,
+    status ENUM('pending', 'processing', 'shipped', 'delivered', 'cancelled') DEFAULT 'pending',
     shipping_address TEXT NOT NULL,
     billing_address TEXT,
-    phone VARCHAR(20),
-    notes TEXT,
+    payment_method VARCHAR(50),
+    payment_status ENUM('pending', 'paid', 'failed') DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- Order items table
-CREATE TABLE IF NOT EXISTS order_items (
+CREATE TABLE order_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    order_id INT,
-    product_id INT,
+    order_id INT NOT NULL,
+    product_id INT NOT NULL,
     quantity INT NOT NULL,
-    price DECIMAL(10,2) NOT NULL,
+    price DECIMAL(10, 2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES products(id)
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 );
 
--- Password resets table
-CREATE TABLE IF NOT EXISTS password_resets (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    email VARCHAR(100) NOT NULL,
-    token VARCHAR(255) NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Insert default categories
-INSERT IGNORE INTO categories (id, name, slug) VALUES 
-(1, 'All products', 'all'),
-(2, 'Cardiology Department', 'cardiology'),
-(3, 'General Equipment', 'general'),
-(4, 'General/Internal Medicine', 'internal'),
-(5, 'Infection Prevention and Control Department', 'infection');
+-- Insert sample admin user (password: admin123)
+INSERT INTO users (email, password, first_name, last_name, role, email_confirmed) VALUES 
+('admin@sreemeditec.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Admin', 'User', 'admin', TRUE);
 
 -- Insert sample products
-INSERT IGNORE INTO products (id, name, description, price, category_id, brand, model, image_url, stock_quantity) VALUES 
-(1, 'Suction Machine', 'High-performance medical suction machine for surgical procedures', 2500.00, 3, 'MedTech', 'SM-2000', '/placeholder.svg', 10),
-(2, 'ECG Machine', 'Digital electrocardiogram machine with advanced monitoring', 4500.00, 2, 'CardioMax', 'ECG-Pro', '/placeholder.svg', 5),
-(3, 'Blood Pressure Monitor', 'Digital blood pressure monitor with memory function', 150.00, 4, 'HealthCare', 'BP-Digital', '/placeholder.svg', 25),
-(4, 'Stethoscope', 'Professional grade stethoscope for medical examination', 89.99, 4, 'MedScope', 'Pro-Stetho', '/placeholder.svg', 50),
-(5, 'Surgical Mask Box', 'Disposable surgical masks - Box of 50', 25.00, 5, 'SafeMed', 'Mask-Pro', '/placeholder.svg', 100);
-
--- Insert admin user (password: admin123)
-INSERT IGNORE INTO users (id, name, email, password, role, email_verified) VALUES 
-(1, 'Admin User', 'admin@sreemeditec.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', TRUE);
+INSERT INTO products (name, description, price, image_url, category, stock_quantity) VALUES 
+('Digital Thermometer', 'High-precision digital thermometer for accurate temperature readings', 29.99, '/placeholder.svg', 'Diagnostic Equipment', 50),
+('Blood Pressure Monitor', 'Automatic digital blood pressure monitor with large display', 79.99, '/placeholder.svg', 'Diagnostic Equipment', 30),
+('Stethoscope', 'Professional dual-head stethoscope for medical examinations', 89.99, '/placeholder.svg', 'Diagnostic Equipment', 25),
+('Pulse Oximeter', 'Fingertip pulse oximeter for measuring oxygen saturation', 39.99, '/placeholder.svg', 'Monitoring Equipment', 40),
+('Medical Scale', 'Digital medical scale with BMI calculation', 159.99, '/placeholder.svg', 'Measurement Tools', 15),
+('Glucometer Kit', 'Complete blood glucose monitoring kit with test strips', 49.99, '/placeholder.svg', 'Diagnostic Equipment', 35);

@@ -3,11 +3,17 @@
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+header('Access-Control-Allow-Credentials: true');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
     exit(0);
 }
+
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 require_once 'config/database.php';
 require_once 'routes/auth.php';
@@ -118,9 +124,15 @@ switch ($path) {
         }
         break;
     
+    case '/test':
+        if ($request_method === 'GET') {
+            echo json_encode(['message' => 'API is working!', 'timestamp' => date('Y-m-d H:i:s')]);
+        }
+        break;
+    
     default:
         http_response_code(404);
-        echo json_encode(['error' => 'Route not found']);
+        echo json_encode(['error' => 'Route not found', 'path' => $path]);
         break;
 }
 ?>

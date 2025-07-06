@@ -8,7 +8,7 @@ channel = "stable-24_05"
 run = ["sh", "-c", "php -S 0.0.0.0:5000 -t ."]
 
 [workflows]
-runButton = "Start PHP Server"
+runButton = "Start Development Servers"
 
 [[workflows.workflow]]
 name = "Start PHP Server"
