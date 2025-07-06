@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
@@ -31,7 +31,7 @@ import AdminRoute from '@/components/routes/AdminRoute';
 function App() {
   return (
     <HelmetProvider>
-      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
           <CartProvider>
             <div className="min-h-screen flex flex-col">
@@ -82,7 +82,7 @@ function App() {
             <Toaster />
           </CartProvider>
         </AuthProvider>
-      </Router>
+      </BrowserRouter>
     </HelmetProvider>
   );
 }
