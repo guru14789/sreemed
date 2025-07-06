@@ -51,7 +51,7 @@ class ApiClient {
       body: JSON.stringify({ email, password }),
     });
 
-    if (response.success) {
+    if (response.success && response.token) {
       this.setToken(response.token);
     }
 

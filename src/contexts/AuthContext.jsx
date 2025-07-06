@@ -46,9 +46,9 @@ export const AuthProvider = ({ children }) => {
       const response = await api.login(email, password);
       if (response.success) {
         setUser(response.user);
-        return { success: true };
+        return response;
       }
-      return { success: false, error: 'Invalid credentials' };
+      return { success: false, error: response.message || 'Invalid credentials' };
     } catch (error) {
       return { success: false, error: error.message };
     }

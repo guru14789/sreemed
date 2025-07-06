@@ -35,8 +35,15 @@ const Login = () => {
     setEmailNotConfirmed(false);
 
     try {
-      await login(formData.email, formData.password);
-      navigate('/');
+      const result = await login(formData.email, formData.password);
+      if (result.success) {
+        navigate('/');
+      } else {
+        if (result.error && result.error.includes('EMAIL_NOT_CONFIRMED')) {
+          setEmailNotConfirmed(true);
+        }
+        // Handle other login errors here if needed
+      }
     } catch (error) {
       if (error.code === 'EMAIL_NOT_CONFIRMED') {
         setEmailNotConfirmed(true);
