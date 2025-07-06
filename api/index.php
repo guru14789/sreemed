@@ -137,6 +137,31 @@ switch (true) {
         }
         break;
 
+    case 'payments':
+        require_once 'routes/payments.php';
+        if ($request_method === 'POST') {
+            if (isset($pathParts[2])) {
+                switch ($pathParts[2]) {
+                    case 'create-order':
+                        handleCreatePaymentOrder();
+                        break;
+                    case 'success':
+                        handlePaymentSuccess();
+                        break;
+                    case 'failure':
+                        handlePaymentFailure();
+                        break;
+                    default:
+                        http_response_code(404);
+                        echo json_encode(['error' => 'Payment endpoint not found']);
+                }
+            } else {
+                http_response_code(404);
+                echo json_encode(['error' => 'Payment endpoint not found']);
+            }
+        }
+        break;
+
     case $path === '/' || $path === '':
         echo json_encode(['message' => 'Sreemeditec API is running', 'version' => '1.0.0']);
         break;

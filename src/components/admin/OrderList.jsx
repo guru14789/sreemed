@@ -1,20 +1,61 @@
 import React, { useState, useEffect } from 'react';
-import { Badge } from '@/components/ui/badge';
+import { motion } from 'framer-motion';
+import { Package, Eye, Edit, Truck, CheckCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Eye, Edit, Truck, Phone, Mail, MapPin } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { api } from '@/lib/api';
 
 const OrderList = () => {
   const [orders, setOrders] = useState([]);
-  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get all orders from localStorage
-    const allOrders = JSON.parse(localStorage.getItem('sreemeditec_orders') || '[]');
-    setOrders(allOrders.sort((a, b) => new Date(b.date) - new Date(a.date)));
+    loadOrders();
   }, []);
+
+  const loadOrders = async () => {
+    try {
+      setLoading(true);
+      const response = await api.getOrders();
+      if (response.success) {
+        setOrders(response.orders || []);
+      }
+    } catch (error) {
+      console.error('Failed to load orders:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load orders.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateOrderStatus = async (orderId, newStatus) => {
+    try {
+      const response = await api.updateOrderStatus(orderId, newStatus);
+      if (response.success) {
+        setOrders(orders.map(order => 
+          order.id === orderId ? { ...order, status: newStatus } : order
+        ));
+
+        toast({
+          title: "Order updated",
+          description: `Order status updated to ${newStatus}`,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update order status.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -38,21 +79,10 @@ const OrderList = () => {
   };
 
   const handleUpdateStatus = (orderId, newStatus) => {
-    const updatedOrders = orders.map(order => {
-      if (order.id === orderId) {
-        return { ...order, status: newStatus };
-      }
-      return order;
-    });
-
-    setOrders(updatedOrders);
-    localStorage.setItem('sreemeditec_orders', JSON.stringify(updatedOrders));
-
-    toast({
-      title: "Order status updated",
-      description: `Order #${orderId} status changed to ${newStatus.replace('_', ' ')}`,
-    });
+    updateOrderStatus(orderId, newStatus);
   };
+
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   const handleViewOrder = (order) => {
     setSelectedOrder(order);
@@ -65,7 +95,9 @@ return (
           <CardTitle>Orders Management</CardTitle>
         </CardHeader>
         <CardContent>
-          {orders.length === 0 ? (
+          {loading ? (
+            <p className="text-gray-500 text-center py-8">Loading orders...</p>
+          ) : orders.length === 0 ? (
             <p className="text-gray-500 text-center py-8">No orders found</p>
           ) : (
             <div className="space-y-4">

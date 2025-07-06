@@ -70,16 +70,30 @@ CREATE TABLE order_items (
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 );
 
--- Contact form submissions table
+-- Contact submissions table
 CREATE TABLE contact_submissions (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(100) NOT NULL,
-    email VARCHAR(100) NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
-    subject VARCHAR(200),
+    subject VARCHAR(255),
     message TEXT NOT NULL,
     status ENUM('new', 'in_progress', 'resolved') DEFAULT 'new',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Payment orders table
+CREATE TABLE IF NOT EXISTS payment_orders (
+    id VARCHAR(255) PRIMARY KEY,
+    user_id INT NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    currency VARCHAR(10) DEFAULT 'INR',
+    status ENUM('created', 'completed', 'failed') DEFAULT 'created',
+    payment_id VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- Quote requests table
@@ -109,3 +123,8 @@ INSERT INTO products (name, description, price, image_url, category, stock_quant
 ('Pulse Oximeter', 'Fingertip pulse oximeter for measuring oxygen saturation', 39.99, '/placeholder.svg', 'Monitoring Equipment', 40),
 ('Medical Scale', 'Digital medical scale with BMI calculation', 159.99, '/placeholder.svg', 'Measurement Tools', 15),
 ('Glucometer Kit', 'Complete blood glucose monitoring kit with test strips', 49.99, '/placeholder.svg', 'Diagnostic Equipment', 35);
+
+-- Insert sample data
+INSERT INTO users (email, password, first_name, last_name, role) VALUES 
+('admin@sreemeditec.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Admin', 'User', 'admin'),
+('john@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'John', 'Doe', 'customer');

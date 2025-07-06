@@ -99,95 +99,64 @@ const Checkout = () => {
   };
 
   const processPaymentSuccess = async (paymentId) => {
-    const order = {
-      id: Date.now().toString(),
-      userId: user.id,
-      customerName: `${formData.firstName} ${formData.lastName}`,
-      email: formData.email,
-      phone: formData.phone,
-      address: `${formData.address}, ${formData.city}, ${formData.state} ${formData.zipCode}`,
-      items: cartItems,
-      subtotal: getCartTotal(),
-      tax: getCartTotal() * 0.18,
-      total: getCartTotal() * 1.18,
-      paymentMethod: formData.paymentMethod,
-      paymentId: paymentId,
-      status: 'confirmed',
-      trackingNumber: 'TRK' + Math.random().toString(36).substr(2, 9).toUpperCase(),
-      estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      date: new Date().toISOString()
-    };
-
-    // Store in localStorage and also try to send to backend
-    const orders = JSON.parse(localStorage.getItem('sreemeditec_orders') || '[]');
-    orders.push(order);
-    localStorage.setItem('sreemeditec_orders', JSON.stringify(orders));
-
     try {
-      // Try to save to backend
       const orderData = {
-        shipping_address: order.address,
-        billing_address: order.address,
-        phone: order.phone,
-        notes: `Payment ID: ${paymentId}`,
+        shipping_address: `${formData.address}, ${formData.city}, ${formData.state} ${formData.zipCode}`,
+        billing_address: `${formData.address}, ${formData.city}, ${formData.state} ${formData.zipCode}`,
+        phone: formData.phone,
+        notes: `Payment ID: ${paymentId}, Customer: ${formData.firstName} ${formData.lastName}`,
         payment_method: formData.paymentMethod,
         payment_id: paymentId
       };
 
-      const response = await api.post('/orders', orderData, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      const response = await api.createOrder(orderData);
 
-      if (response.status === 201) {
-        console.log('Order saved to backend successfully');
+      if (response.success) {
+        clearCart();
+
+        toast({
+          title: "Payment successful!",
+          description: `Your order #${response.order_id} has been confirmed.`,
+        });
+
+        navigate(`/order-confirmation/${response.order_id}`);
+      } else {
+        throw new Error(response.error || 'Order creation failed');
       }
     } catch (error) {
-      console.log('Backend not available, order saved locally only');
+      console.error('Order creation error:', error);
+      throw error;
     }
-
-    clearCart();
-
-    toast({
-      title: "Payment successful!",
-      description: `Your order #${order.id} has been confirmed.`,
-    });
-
-    navigate(`/order-confirmation/${order.id}`);
   };
 
   const processCashOnDelivery = async () => {
-    const order = {
-      id: Date.now().toString(),
-      userId: user.id,
-      customerName: `${formData.firstName} ${formData.lastName}`,
-      email: formData.email,
-      phone: formData.phone,
-      address: `${formData.address}, ${formData.city}, ${formData.state} ${formData.zipCode}`,
-      items: cartItems,
-      subtotal: getCartTotal(),
-      tax: getCartTotal() * 0.18,
-      total: getCartTotal() * 1.18,
-      paymentMethod: 'cod',
-      status: 'pending',
-      trackingNumber: 'TRK' + Math.random().toString(36).substr(2, 9).toUpperCase(),
-      estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      date: new Date().toISOString()
-    };
+    try {
+      const orderData = {
+        shipping_address: `${formData.address}, ${formData.city}, ${formData.state} ${formData.zipCode}`,
+        billing_address: `${formData.address}, ${formData.city}, ${formData.state} ${formData.zipCode}`,
+        phone: formData.phone,
+        notes: `Cash on Delivery, Customer: ${formData.firstName} ${formData.lastName}`,
+        payment_method: 'cod'
+      };
 
-    const orders = JSON.parse(localStorage.getItem('sreemeditec_orders') || '[]');
-    orders.push(order);
-    localStorage.setItem('sreemeditec_orders', JSON.stringify(orders));
+      const response = await api.createOrder(orderData);
 
-    clearCart();
+      if (response.success) {
+        clearCart();
 
-    toast({
-      title: "Order placed successfully!",
-      description: `Your order #${order.id} has been confirmed.`,
-    });
+        toast({
+          title: "Order placed successfully!",
+          description: `Your order #${response.order_id} has been confirmed.`,
+        });
 
-    navigate(`/order-confirmation/${order.id}`);
+        navigate(`/order-confirmation/${response.order_id}`);
+      } else {
+        throw new Error(response.error || 'Order creation failed');
+      }
+    } catch (error) {
+      console.error('Order creation error:', error);
+      throw error;
+    }
   };
 
   return (

@@ -13,9 +13,20 @@ const OrderConfirmation = () => {
   const [order, setOrder] = useState(null);
 
   useEffect(() => {
-    const orders = JSON.parse(localStorage.getItem('sreemeditec_orders') || '[]');
-    const foundOrder = orders.find(o => o.id === orderId);
-    setOrder(foundOrder);
+    const loadOrder = async () => {
+      if (orderId) {
+        try {
+          const response = await api.getOrder(orderId);
+          if (response.success) {
+            setOrder(response.order);
+          }
+        } catch (error) {
+          console.error('Failed to load order:', error);
+        }
+      }
+    };
+    
+    loadOrder();
   }, [orderId]);
 
   if (!order) {

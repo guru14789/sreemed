@@ -1,12 +1,14 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
-import { Package, Truck, CheckCircle, Clock, MapPin, Phone, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Package, Truck, CheckCircle, Clock, MapPin, Phone, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { toast } from '@/components/ui/use-toast';
+import { api } from '@/lib/api';
+import LiveTracking from '@/components/tracking/LiveTracking';
 
 const OrderTracking = () => {
   const { orderId } = useParams();
@@ -14,13 +16,20 @@ const OrderTracking = () => {
   const [trackingStatus, setTrackingStatus] = useState('confirmed');
 
   useEffect(() => {
-    const orders = JSON.parse(localStorage.getItem('sreemeditec_orders') || '[]');
-    const foundOrder = orders.find(o => o.id === orderId);
-    setOrder(foundOrder);
-    
-    if (foundOrder) {
-      setTrackingStatus(foundOrder.status);
-    }
+    const loadOrder = async () => {
+      if (orderId) {
+        try {
+          const response = await api.getOrder(orderId);
+          if (response.success) {
+            setOrder(response.order);
+          }
+        } catch (error) {
+          console.error('Failed to load order:', error);
+        }
+      }
+    };
+
+    loadOrder();
   }, [orderId]);
 
   useEffect(() => {
@@ -29,11 +38,11 @@ const OrderTracking = () => {
       const interval = setInterval(() => {
         const statuses = ['confirmed', 'processing', 'shipped', 'out_for_delivery', 'delivered'];
         const currentIndex = statuses.indexOf(trackingStatus);
-        
+
         if (currentIndex < statuses.length - 1 && Math.random() > 0.7) {
           const nextStatus = statuses[currentIndex + 1];
           setTrackingStatus(nextStatus);
-          
+
           // Update localStorage
           const orders = JSON.parse(localStorage.getItem('sreemeditec_orders') || '[]');
           const orderIndex = orders.findIndex(o => o.id === orderId);
@@ -59,7 +68,7 @@ const OrderTracking = () => {
     ];
 
     const statusIndex = steps.findIndex(step => step.id === trackingStatus);
-    
+
     return steps.map((step, index) => ({
       ...step,
       completed: index <= statusIndex,
@@ -161,61 +170,8 @@ const OrderTracking = () => {
               </CardContent>
             </Card>
 
-            {/* Tracking Timeline */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Tracking Timeline</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {trackingSteps.map((step, index) => {
-                    const Icon = step.icon;
-                    return (
-                      <div key={step.id} className="relative flex items-center">
-                        {/* Timeline line */}
-                        {index < trackingSteps.length - 1 && (
-                          <div className={`absolute left-6 top-12 w-0.5 h-8 ${
-                            step.completed ? 'bg-teal-600' : 'bg-gray-300'
-                          }`} />
-                        )}
-                        
-                        {/* Step indicator */}
-                        <div className={`relative z-10 w-12 h-12 rounded-full flex items-center justify-center ${
-                          step.completed ? 'bg-teal-600 text-white' :
-                          step.active ? 'bg-teal-100 text-teal-600 border-2 border-teal-600' :
-                          'bg-gray-200 text-gray-400'
-                        }`}>
-                          <Icon className="w-6 h-6" />
-                        </div>
-
-                        {/* Step content */}
-                        <div className="ml-4 flex-1">
-                          <h3 className={`font-medium ${
-                            step.completed || step.active ? 'text-gray-900' : 'text-gray-500'
-                          }`}>
-                            {step.label}
-                          </h3>
-                          {step.active && (
-                            <p className="text-sm text-teal-600 mt-1">In Progress</p>
-                          )}
-                          {step.completed && !step.active && (
-                            <p className="text-sm text-gray-600 mt-1">Completed</p>
-                          )}
-                        </div>
-
-                        {/* Timestamp placeholder */}
-                        <div className="text-sm text-gray-500">
-                          {step.completed && (
-                            new Date(Date.now() - (trackingSteps.length - index - 1) * 24 * 60 * 60 * 1000)
-                              .toLocaleDateString()
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Live Tracking */}
+            <LiveTracking order={order} />
 
             {/* Delivery Information */}
             <div className="grid md:grid-cols-2 gap-6">

@@ -47,8 +47,10 @@ const Profile = () => {
     setIsLoading(true);
 
     try {
-      await updateProfile(profileData);
-      setIsEditing(false);
+      const result = await updateProfile(profileData);
+      if (result.success) {
+        setIsEditing(false);
+      }
     } catch (error) {
       // Error is handled in the auth context
     } finally {
