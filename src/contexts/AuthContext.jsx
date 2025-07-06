@@ -1,7 +1,5 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '@/lib/customSupabaseClient';
-import { toast } from '@/components/ui/use-toast';
+import { api } from '@/lib/api';
 
 const AuthContext = createContext();
 
@@ -18,148 +16,88 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const getSessionAndProfile = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        setUser({ ...session.user, ...profile });
-      }
+    // Check if user is logged in by validating token
+    const token = api.getToken();
+    if (token) {
+      loadUserProfile();
+    } else {
       setLoading(false);
-    };
-
-    getSessionAndProfile();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          setUser({ ...session.user, ...profile });
-        } else {
-          setUser(null);
-        }
-        setLoading(false);
-      }
-    );
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
+    }
   }, []);
 
-  const login = async (email, password) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      if (error.message === 'Email not confirmed') {
-        const customError = new Error('Email not confirmed');
-        customError.code = 'EMAIL_NOT_CONFIRMED';
-        throw customError;
+  const loadUserProfile = async () => {
+    try {
+      const response = await api.getProfile();
+      if (response.success) {
+        setUser(response.user);
+      } else {
+        api.removeToken();
       }
-      toast({ title: "Login failed", description: error.message, variant: "destructive" });
-      throw error;
+    } catch (error) {
+      console.error('Failed to load user profile:', error);
+      api.removeToken();
+    } finally {
+      setLoading(false);
     }
-    toast({ title: "Welcome back!", description: "You have successfully logged in." });
+  };
+
+  const login = async (email, password) => {
+    try {
+      const response = await api.login(email, password);
+      if (response.success) {
+        setUser(response.user);
+        return { success: true };
+      }
+      return { success: false, error: 'Invalid credentials' };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
   };
 
   const register = async (userData) => {
-    const { email, password, name, phone, address } = userData;
-    const { error } = await supabase.auth.signUp({ 
-      email, 
-      password,
-      options: {
-        data: {
-          name: name,
-          phone: phone,
-          address: address,
-        }
+    try {
+      const response = await api.register(userData);
+      if (response.success) {
+        setUser(response.user);
+        return { success: true };
       }
-    });
-
-    if (error) {
-      toast({ title: "Registration failed", description: error.message, variant: "destructive" });
-      throw error;
+      return { success: false, error: 'Registration failed' };
+    } catch (error) {
+      return { success: false, error: error.message };
     }
-    
-    toast({ title: "Account created!", description: "Welcome to Sreemeditec. Please check your email to verify your account." });
   };
 
   const logout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast({ title: "Logout failed", description: error.message, variant: "destructive" });
-      throw error;
+    try {
+      await api.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+      api.removeToken();
     }
-    setUser(null);
-    toast({ title: "Logged out", description: "You have been successfully logged out." });
   };
 
-  const updateProfile = async (updates) => {
-    if (!user) throw new Error("No user logged in");
-    const { name, phone, address } = updates;
-    const { error } = await supabase
-      .from('profiles')
-      .update({ name, phone, address, updated_at: new Date().toISOString() })
-      .eq('id', user.id);
-
-    if (error) {
-      toast({ title: "Update failed", description: error.message, variant: "destructive" });
-      throw error;
+  const updateProfile = async (userData) => {
+    try {
+      const response = await api.updateProfile(userData);
+      if (response.success) {
+        await loadUserProfile(); // Reload user data
+        return { success: true };
+      }
+      return { success: false, error: 'Update failed' };
+    } catch (error) {
+      return { success: false, error: error.message };
     }
-
-    const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-    setUser(prevUser => ({ ...prevUser, ...profile }));
-    toast({ title: "Profile updated", description: "Your profile has been successfully updated." });
-  };
-
-  const changePassword = async (currentPassword, newPassword) => {
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) {
-      toast({ title: "Password change failed", description: error.message, variant: "destructive" });
-      throw error;
-    }
-    toast({ title: "Password changed", description: "Your password has been successfully updated." });
-  };
-
-  const forgotPassword = async (email) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/update-password`,
-    });
-    if (error) {
-      toast({ title: "Reset failed", description: error.message, variant: "destructive" });
-      throw error;
-    }
-    toast({ title: "Reset email sent", description: "Check your email for password reset instructions." });
-  };
-  
-  const resendConfirmationEmail = async (email) => {
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email: email,
-    });
-    if (error) {
-      toast({ title: "Failed to resend email", description: error.message, variant: "destructive" });
-      throw error;
-    }
-    toast({ title: "Confirmation email sent", description: "Please check your inbox." });
   };
 
   const value = {
     user,
-    loading,
     login,
     register,
     logout,
     updateProfile,
-    changePassword,
-    forgotPassword,
-    resendConfirmationEmail,
+    loading
   };
 
   return (

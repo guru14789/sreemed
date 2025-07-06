@@ -82,3 +82,71 @@ function handleGetStats() {
     ]);
 }
 ?>
+<?php
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../utils/jwt.php';
+
+function handleGetUsers() {
+    $user = validateJWT();
+    if (!$user || $user['role'] !== 'admin') {
+        http_response_code(403);
+        echo json_encode(['error' => 'Admin access required']);
+        return;
+    }
+    
+    global $db;
+    
+    $query = "SELECT id, name, email, phone, role, email_verified, created_at FROM users ORDER BY created_at DESC";
+    $stmt = $db->prepare($query);
+    $stmt->execute();
+    
+    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    echo json_encode(['success' => true, 'users' => $users]);
+}
+
+function handleGetStats() {
+    $user = validateJWT();
+    if (!$user || $user['role'] !== 'admin') {
+        http_response_code(403);
+        echo json_encode(['error' => 'Admin access required']);
+        return;
+    }
+    
+    global $db;
+    
+    // Get total users
+    $usersQuery = "SELECT COUNT(*) as total FROM users";
+    $usersStmt = $db->prepare($usersQuery);
+    $usersStmt->execute();
+    $totalUsers = $usersStmt->fetch(PDO::FETCH_ASSOC)['total'];
+    
+    // Get total products
+    $productsQuery = "SELECT COUNT(*) as total FROM products WHERE is_active = 1";
+    $productsStmt = $db->prepare($productsQuery);
+    $productsStmt->execute();
+    $totalProducts = $productsStmt->fetch(PDO::FETCH_ASSOC)['total'];
+    
+    // Get total orders
+    $ordersQuery = "SELECT COUNT(*) as total FROM orders";
+    $ordersStmt = $db->prepare($ordersQuery);
+    $ordersStmt->execute();
+    $totalOrders = $ordersStmt->fetch(PDO::FETCH_ASSOC)['total'];
+    
+    // Get total revenue
+    $revenueQuery = "SELECT SUM(total_amount) as total FROM orders WHERE status != 'cancelled'";
+    $revenueStmt = $db->prepare($revenueQuery);
+    $revenueStmt->execute();
+    $totalRevenue = $revenueStmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+    
+    echo json_encode([
+        'success' => true,
+        'stats' => [
+            'total_users' => (int)$totalUsers,
+            'total_products' => (int)$totalProducts,
+            'total_orders' => (int)$totalOrders,
+            'total_revenue' => (float)$totalRevenue
+        ]
+    ]);
+}
+?>

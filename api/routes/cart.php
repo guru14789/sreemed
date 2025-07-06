@@ -198,3 +198,128 @@ function handleRemoveFromCart($item_id) {
     }
 }
 ?>
+<?php
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../utils/jwt.php';
+
+function handleGetCart() {
+    $user = validateJWT();
+    if (!$user) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Unauthorized']);
+        return;
+    }
+    
+    global $db;
+    
+    $query = "SELECT ci.*, p.name, p.price, p.image_url, p.stock_quantity
+              FROM cart_items ci
+              JOIN products p ON ci.product_id = p.id
+              WHERE ci.user_id = :user_id AND p.is_active = 1
+              ORDER BY ci.created_at DESC";
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(':user_id', $user['user_id']);
+    $stmt->execute();
+    
+    $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    echo json_encode(['success' => true, 'items' => $items]);
+}
+
+function handleAddToCart() {
+    $user = validateJWT();
+    if (!$user) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Unauthorized']);
+        return;
+    }
+    
+    global $db;
+    
+    $data = json_decode(file_get_contents("php://input"), true);
+    
+    if (!isset($data['product_id']) || !isset($data['quantity'])) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Product ID and quantity are required']);
+        return;
+    }
+    
+    // Check if item already exists in cart
+    $checkQuery = "SELECT id, quantity FROM cart_items WHERE user_id = :user_id AND product_id = :product_id";
+    $checkStmt = $db->prepare($checkQuery);
+    $checkStmt->bindParam(':user_id', $user['user_id']);
+    $checkStmt->bindParam(':product_id', $data['product_id']);
+    $checkStmt->execute();
+    
+    $existingItem = $checkStmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($existingItem) {
+        // Update quantity
+        $newQuantity = $existingItem['quantity'] + $data['quantity'];
+        $updateQuery = "UPDATE cart_items SET quantity = :quantity WHERE id = :id";
+        $updateStmt = $db->prepare($updateQuery);
+        $updateStmt->bindParam(':quantity', $newQuantity);
+        $updateStmt->bindParam(':id', $existingItem['id']);
+        $updateStmt->execute();
+    } else {
+        // Insert new item
+        $insertQuery = "INSERT INTO cart_items (user_id, product_id, quantity) VALUES (:user_id, :product_id, :quantity)";
+        $insertStmt = $db->prepare($insertQuery);
+        $insertStmt->bindParam(':user_id', $user['user_id']);
+        $insertStmt->bindParam(':product_id', $data['product_id']);
+        $insertStmt->bindParam(':quantity', $data['quantity']);
+        $insertStmt->execute();
+    }
+    
+    echo json_encode(['success' => true, 'message' => 'Item added to cart']);
+}
+
+function handleUpdateCartItem($id) {
+    $user = validateJWT();
+    if (!$user) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Unauthorized']);
+        return;
+    }
+    
+    global $db;
+    
+    $data = json_decode(file_get_contents("php://input"), true);
+    
+    $query = "UPDATE cart_items SET quantity = :quantity WHERE id = :id AND user_id = :user_id";
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(':quantity', $data['quantity']);
+    $stmt->bindParam(':id', $id);
+    $stmt->bindParam(':user_id', $user['user_id']);
+    
+    if ($stmt->execute()) {
+        echo json_encode(['success' => true, 'message' => 'Cart item updated']);
+    } else {
+        http_response_code(500);
+        echo json_encode(['error' => 'Failed to update cart item']);
+    }
+}
+
+function handleRemoveFromCart($id) {
+    $user = validateJWT();
+    if (!$user) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Unauthorized']);
+        return;
+    }
+    
+    global $db;
+    
+    $query = "DELETE FROM cart_items WHERE id = :id AND user_id = :user_id";
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(':id', $id);
+    $stmt->bindParam(':user_id', $user['user_id']);
+    
+    if ($stmt->execute()) {
+        echo json_encode(['success' => true, 'message' => 'Item removed from cart']);
+    } else {
+        http_response_code(500);
+        echo json_encode(['error' => 'Failed to remove item from cart']);
+    }
+}
+?>

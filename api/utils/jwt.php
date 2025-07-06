@@ -73,3 +73,50 @@ function authenticateUser() {
     return $userData;
 }
 ?>
+<?php
+function generateJWT($payload) {
+    $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
+    $payload = json_encode(array_merge($payload, ['exp' => time() + (24 * 60 * 60)])); // 24 hours
+    
+    $headerEncoded = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header));
+    $payloadEncoded = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($payload));
+    
+    $signature = hash_hmac('sha256', $headerEncoded . "." . $payloadEncoded, 'your-secret-key', true);
+    $signatureEncoded = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature));
+    
+    return $headerEncoded . "." . $payloadEncoded . "." . $signatureEncoded;
+}
+
+function validateJWT() {
+    $headers = apache_request_headers();
+    
+    if (!isset($headers['Authorization'])) {
+        return false;
+    }
+    
+    $token = str_replace('Bearer ', '', $headers['Authorization']);
+    $parts = explode('.', $token);
+    
+    if (count($parts) !== 3) {
+        return false;
+    }
+    
+    $header = base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[0]));
+    $payload = base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[1]));
+    $signature = $parts[2];
+    
+    $expectedSignature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode(hash_hmac('sha256', $parts[0] . "." . $parts[1], 'your-secret-key', true)));
+    
+    if ($signature !== $expectedSignature) {
+        return false;
+    }
+    
+    $payloadData = json_decode($payload, true);
+    
+    if ($payloadData['exp'] < time()) {
+        return false;
+    }
+    
+    return $payloadData;
+}
+?>
