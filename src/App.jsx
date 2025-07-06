@@ -18,6 +18,8 @@ import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import Profile from '@/pages/Profile';
 import OrderHistory from '@/pages/OrderHistory';
+import OrderConfirmation from '@/pages/OrderConfirmation';
+import OrderTracking from '@/pages/OrderTracking';
 import QuoteRequest from '@/pages/QuoteRequest';
 import AdminDashboard from '@/pages/AdminDashboard';
 import NotFound from '@/pages/NotFound';
@@ -62,6 +64,21 @@ function App() {
                     </ProtectedRoute>
                   } />
                   <Route path="/orders" element={
+                    <ProtectedRoute>
+                      <OrderHistory />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/order-confirmation/:orderId" element={
+                    <ProtectedRoute>
+                      <OrderConfirmation />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/track-order/:orderId" element={
+                    <ProtectedRoute>
+                      <OrderTracking />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/order-details/:orderId" element={
                     <ProtectedRoute>
                       <OrderHistory />
                     </ProtectedRoute>

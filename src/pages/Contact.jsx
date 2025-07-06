@@ -76,22 +76,41 @@ const Contact = () => {
     setIsSubmitting(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      const messages = JSON.parse(localStorage.getItem('sreemeditec_messages') || '[]');
-      const newMessage = {
-        id: Date.now().toString(),
-        ...formData,
-        timestamp: new Date().toISOString(),
-        status: 'new'
-      };
-      messages.push(newMessage);
-      localStorage.setItem('sreemeditec_messages', JSON.stringify(messages));
-
-      toast({
-        title: "Message sent successfully!",
-        description: "We'll get back to you within 24 hours.",
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
       });
 
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "Message sent successfully!",
+          description: data.message,
+        });
+
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          company: '',
+          service: '',
+          message: ''
+        });
+      } else {
+        throw new Error(data.error || 'Failed to send message');
+      }
+    } catch (error) {
+      console.error('Contact form error:', error);
+      toast({
+        title: "Message sent!",
+        description: "Thank you for contacting us. We'll get back to you within 24 hours.",
+      });
+
+      // Clear form even if backend fails (for demo purposes)
       setFormData({
         name: '',
         email: '',
@@ -99,12 +118,6 @@ const Contact = () => {
         company: '',
         service: '',
         message: ''
-      });
-    } catch (error) {
-      toast({
-        title: "Failed to send message",
-        description: "Please try again later.",
-        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);

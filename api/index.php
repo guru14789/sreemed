@@ -115,6 +115,28 @@ switch (true) {
         handleGetStats();
         break;
 
+    case 'contact':
+        require_once 'routes/contact.php';
+        if ($request_method === 'POST' && $path === '/contact') {
+            handleContactForm();
+        } elseif ($request_method === 'GET' && $path === '/contact/submissions') {
+            handleGetContactSubmissions();
+        } else {
+            http_response_code(404);
+            echo json_encode(['error' => 'Endpoint not found']);
+        }
+        break;
+
+    case 'quote':
+        require_once 'routes/contact.php';
+        if ($request_method === 'POST' && $path === '/quote') {
+            handleQuoteRequest();
+        } else {
+            http_response_code(404);
+            echo json_encode(['error' => 'Endpoint not found']);
+        }
+        break;
+
     case $path === '/' || $path === '':
         echo json_encode(['message' => 'Sreemeditec API is running', 'version' => '1.0.0']);
         break;

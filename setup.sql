@@ -70,6 +70,33 @@ CREATE TABLE order_items (
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 );
 
+-- Contact form submissions table
+CREATE TABLE contact_submissions (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    phone VARCHAR(20),
+    subject VARCHAR(200),
+    message TEXT NOT NULL,
+    status ENUM('new', 'in_progress', 'resolved') DEFAULT 'new',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Quote requests table
+CREATE TABLE quote_requests (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    phone VARCHAR(20),
+    company VARCHAR(100),
+    equipment_type VARCHAR(100) NOT NULL,
+    quantity INT DEFAULT 1,
+    description TEXT,
+    budget DECIMAL(10,2),
+    status ENUM('new', 'quoted', 'accepted', 'rejected') DEFAULT 'new',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Insert sample admin user (password: admin123)
 INSERT INTO users (email, password, first_name, last_name, role, email_confirmed) VALUES 
 ('admin@sreemeditec.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Admin', 'User', 'admin', TRUE);

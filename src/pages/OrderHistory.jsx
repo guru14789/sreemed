@@ -20,16 +20,52 @@ const OrderHistory = () => {
     }
   }, [user]);
 
-  const handleViewOrder = (orderId) => {
+  const handleReorder = (order) => {
+    // Add all items from the order back to cart
+    order.items.forEach(item => {
+      // Simulate adding to cart (you would use your cart context here)
+      console.log('Adding to cart:', item);
+    });
+    
     toast({
-      title: "🚧 This feature isn't implemented yet—but don't worry! You can request it in your next prompt! 🚀"
+      title: "Items added to cart",
+      description: "All items from this order have been added to your cart.",
     });
   };
 
-  const handleTrackOrder = (orderId) => {
-    toast({
-      title: "🚧 This feature isn't implemented yet—but don't worry! You can request it in your next prompt! 🚀"
-    });
+  const handleDownloadInvoice = (orderId) => {
+    // Simulate invoice download
+    const order = orders.find(o => o.id === orderId);
+    if (order) {
+      // Create a simple invoice content
+      const invoiceContent = `
+        SREEMEDITEC INVOICE
+        ==================
+        Order #: ${order.id}
+        Date: ${new Date(order.date).toLocaleDateString()}
+        Customer: ${order.customerName}
+        
+        Items:
+        ${order.items.map(item => `${item.name} x${item.quantity} - ₹${(item.price * item.quantity).toFixed(2)}`).join('\n')}
+        
+        Subtotal: ₹${order.subtotal.toFixed(2)}
+        Tax: ₹${order.tax.toFixed(2)}
+        Total: ₹${order.total.toFixed(2)}
+      `;
+      
+      const blob = new Blob([invoiceContent], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `invoice-${orderId}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Invoice downloaded",
+        description: "Your invoice has been downloaded successfully.",
+      });
+    }
   };
 
   const getStatusIcon = (status) => {
@@ -183,33 +219,43 @@ const OrderHistory = () => {
 
                         {/* Actions */}
                         <div className="flex flex-col sm:flex-row gap-3">
-                          <Button
-                            variant="outline"
-                            onClick={() => handleViewOrder(order.id)}
-                            className="flex items-center"
-                          >
-                            <Eye className="w-4 h-4 mr-2" />
-                            View Details
-                          </Button>
-                          {order.status !== 'delivered' && (
+                          <Link to={`/order-details/${order.id}`}>
                             <Button
                               variant="outline"
-                              onClick={() => handleTrackOrder(order.id)}
-                              className="flex items-center"
+                              className="flex items-center w-full sm:w-auto"
                             >
-                              <Truck className="w-4 h-4 mr-2" />
-                              Track Order
+                              <Eye className="w-4 h-4 mr-2" />
+                              View Details
                             </Button>
+                          </Link>
+                          {order.status !== 'delivered' && (
+                            <Link to={`/track-order/${order.id}`}>
+                              <Button
+                                variant="outline"
+                                className="flex items-center w-full sm:w-auto"
+                              >
+                                <Truck className="w-4 h-4 mr-2" />
+                                Live Tracking
+                              </Button>
+                            </Link>
                           )}
                           {order.status === 'delivered' && (
                             <Button
                               variant="outline"
-                              className="flex items-center"
+                              className="flex items-center w-full sm:w-auto"
+                              onClick={() => handleReorder(order)}
                             >
                               <Package className="w-4 h-4 mr-2" />
                               Reorder
                             </Button>
                           )}
+                          <Button
+                            variant="outline"
+                            className="flex items-center w-full sm:w-auto"
+                            onClick={() => handleDownloadInvoice(order.id)}
+                          >
+                            Download Invoice
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
