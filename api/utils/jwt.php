@@ -88,6 +88,45 @@ function generateJWT($payload) {
 }
 
 function validateJWT() {
+    $headers = getallheaders();
+    $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? null;
+    
+    if (!$authHeader || !preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
+        return false;
+    }
+    
+    $jwt = $matches[1];
+    return verifyJWT($jwt);
+}
+
+function verifyJWT($jwt) {
+    $parts = explode('.', $jwt);
+    if (count($parts) !== 3) {
+        return false;
+    }
+    
+    list($headerEncoded, $payloadEncoded, $signatureEncoded) = $parts;
+    
+    // Verify signature
+    $signature = hash_hmac('sha256', $headerEncoded . "." . $payloadEncoded, 'your-secret-key', true);
+    $expectedSignature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature));
+    
+    if (!hash_equals($expectedSignature, $signatureEncoded)) {
+        return false;
+    }
+    
+    // Decode payload
+    $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $payloadEncoded)), true);
+    
+    // Check expiration
+    if (isset($payload['exp']) && $payload['exp'] < time()) {
+        return false;
+    }
+    
+    return $payload;
+}
+
+function validateJWT() {
     $headers = apache_request_headers();
     
     if (!isset($headers['Authorization'])) {

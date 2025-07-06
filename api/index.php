@@ -1,138 +1,127 @@
-
 <?php
-header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
-header('Access-Control-Allow-Credentials: true');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Content-Type: application/json');
 
+// Handle preflight requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
-    exit(0);
+    exit;
 }
 
-// Enable error reporting for debugging
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
 require_once 'config/database.php';
+require_once 'utils/jwt.php';
 require_once 'routes/auth.php';
 require_once 'routes/products.php';
 require_once 'routes/cart.php';
 require_once 'routes/orders.php';
 require_once 'routes/users.php';
 
-$request_uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+// Get the request URI and method
+$request_uri = $_SERVER['REQUEST_URI'];
 $request_method = $_SERVER['REQUEST_METHOD'];
 
-// Remove /api from the path if present
-$path = str_replace('/api', '', $request_uri);
+// Remove the '/api' prefix if present and clean the path
+$path = str_replace('/api', '', parse_url($request_uri, PHP_URL_PATH));
+$path = rtrim($path, '/');
+if (empty($path)) {
+    $path = '/';
+}
 
-// Route handling
-switch ($path) {
-    // Auth routes
-    case '/auth/login':
-        if ($request_method === 'POST') {
-            handleLogin();
-        }
+// Route the request
+switch (true) {
+    case $path === '/auth/login' && $request_method === 'POST':
+        handleLogin();
         break;
-    case '/auth/register':
-        if ($request_method === 'POST') {
-            handleRegister();
-        }
+
+    case $path === '/auth/register' && $request_method === 'POST':
+        handleRegister();
         break;
-    case '/auth/logout':
-        if ($request_method === 'POST') {
-            handleLogout();
-        }
+
+    case $path === '/auth/logout' && $request_method === 'POST':
+        handleLogout();
         break;
-    case '/auth/forgot-password':
-        if ($request_method === 'POST') {
-            handleForgotPassword();
-        }
+
+    case $path === '/auth/forgot-password' && $request_method === 'POST':
+        handleForgotPassword();
         break;
-    case '/auth/profile':
-        if ($request_method === 'GET') {
-            handleGetProfile();
-        } elseif ($request_method === 'PUT') {
-            handleUpdateProfile();
-        }
+
+    case $path === '/auth/profile' && $request_method === 'GET':
+        handleGetProfile();
         break;
-    
-    // Product routes
-    case '/products':
-        if ($request_method === 'GET') {
-            handleGetProducts();
-        } elseif ($request_method === 'POST') {
-            handleCreateProduct();
-        }
+
+    case $path === '/auth/profile' && $request_method === 'PUT':
+        handleUpdateProfile();
         break;
-    case (preg_match('/\/products\/(\d+)/', $path, $matches) ? true : false):
-        $product_id = $matches[1];
-        if ($request_method === 'GET') {
-            handleGetProduct($product_id);
-        } elseif ($request_method === 'PUT') {
-            handleUpdateProduct($product_id);
-        } elseif ($request_method === 'DELETE') {
-            handleDeleteProduct($product_id);
-        }
+
+    case $path === '/products' && $request_method === 'GET':
+        handleGetProducts();
         break;
-    
-    // Cart routes
-    case '/cart':
-        if ($request_method === 'GET') {
-            handleGetCart();
-        } elseif ($request_method === 'POST') {
-            handleAddToCart();
-        }
+
+    case $path === '/products' && $request_method === 'POST':
+        handleCreateProduct();
         break;
-    case (preg_match('/\/cart\/(\d+)/', $path, $matches) ? true : false):
-        $item_id = $matches[1];
-        if ($request_method === 'PUT') {
-            handleUpdateCartItem($item_id);
-        } elseif ($request_method === 'DELETE') {
-            handleRemoveFromCart($item_id);
-        }
+
+    case preg_match('/^\/products\/(\d+)$/', $path, $matches) && $request_method === 'GET':
+        handleGetProduct($matches[1]);
         break;
-    
-    // Order routes
-    case '/orders':
-        if ($request_method === 'GET') {
-            handleGetOrders();
-        } elseif ($request_method === 'POST') {
-            handleCreateOrder();
-        }
+
+    case preg_match('/^\/products\/(\d+)$/', $path, $matches) && $request_method === 'PUT':
+        handleUpdateProduct($matches[1]);
         break;
-    case (preg_match('/\/orders\/(\d+)/', $path, $matches) ? true : false):
-        $order_id = $matches[1];
-        if ($request_method === 'GET') {
-            handleGetOrder($order_id);
-        } elseif ($request_method === 'PUT') {
-            handleUpdateOrder($order_id);
-        }
+
+    case preg_match('/^\/products\/(\d+)$/', $path, $matches) && $request_method === 'DELETE':
+        handleDeleteProduct($matches[1]);
         break;
-    
-    // Admin routes
-    case '/admin/users':
-        if ($request_method === 'GET') {
-            handleGetUsers();
-        }
+
+    case $path === '/cart' && $request_method === 'GET':
+        handleGetCart();
         break;
-    case '/admin/stats':
-        if ($request_method === 'GET') {
-            handleGetStats();
-        }
+
+    case $path === '/cart' && $request_method === 'POST':
+        handleAddToCart();
         break;
-    
-    case '/test':
-        if ($request_method === 'GET') {
-            echo json_encode(['message' => 'API is working!', 'timestamp' => date('Y-m-d H:i:s')]);
-        }
+
+    case preg_match('/^\/cart\/(\d+)$/', $path, $matches) && $request_method === 'PUT':
+        handleUpdateCartItem($matches[1]);
         break;
-    
+
+    case preg_match('/^\/cart\/(\d+)$/', $path, $matches) && $request_method === 'DELETE':
+        handleRemoveFromCart($matches[1]);
+        break;
+
+    case $path === '/orders' && $request_method === 'GET':
+        handleGetOrders();
+        break;
+
+    case $path === '/orders' && $request_method === 'POST':
+        handleCreateOrder();
+        break;
+
+    case preg_match('/^\/orders\/(\d+)$/', $path, $matches) && $request_method === 'GET':
+        handleGetOrder($matches[1]);
+        break;
+
+    case preg_match('/^\/orders\/(\d+)$/', $path, $matches) && $request_method === 'PUT':
+        handleUpdateOrder($matches[1]);
+        break;
+
+    case $path === '/admin/users' && $request_method === 'GET':
+        handleGetUsers();
+        break;
+
+    case $path === '/admin/stats' && $request_method === 'GET':
+        handleGetStats();
+        break;
+
+    case $path === '/' || $path === '':
+        echo json_encode(['message' => 'Sreemeditec API is running', 'version' => '1.0.0']);
+        break;
+
     default:
         http_response_code(404);
-        echo json_encode(['error' => 'Route not found', 'path' => $path]);
+        echo json_encode(['error' => 'Endpoint not found: ' . $path]);
         break;
 }
 ?>

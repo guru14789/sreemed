@@ -31,15 +31,19 @@ class ApiClient {
     };
 
     try {
+      console.log(`Making request to: ${url}`);
       const response = await fetch(url, config);
-      const data = await response.json();
-
+      
       if (!response.ok) {
-        throw new Error(data.error || 'An error occurred');
+        const errorText = await response.text();
+        console.error(`Request failed: ${response.status} ${response.statusText}`, errorText);
+        throw new Error(`Request failed: ${response.status} ${response.statusText}`);
       }
 
+      const data = await response.json();
       return data;
     } catch (error) {
+      console.error('API request error:', error);
       throw error;
     }
   }
