@@ -1,52 +1,84 @@
+
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { Package, Truck, CheckCircle, Clock, Eye } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCart } from '@/contexts/CartContext';
 import { toast } from '@/components/ui/use-toast';
+import { api } from '@/lib/api';
 
 const OrderHistory = () => {
   const { user } = useAuth();
+  const { addToCart } = useCart();
   const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
-      const allOrders = JSON.parse(localStorage.getItem('sreemeditec_orders') || '[]');
-      const userOrders = allOrders.filter(order => order.userId === user.id);
-      setOrders(userOrders.sort((a, b) => new Date(b.date) - new Date(a.date)));
+      loadOrders();
     }
   }, [user]);
 
-  const handleReorder = (order) => {
-    // Add all items from the order back to cart
-    order.items.forEach(item => {
-      // Simulate adding to cart (you would use your cart context here)
-      console.log('Adding to cart:', item);
-    });
-    
-    toast({
-      title: "Items added to cart",
-      description: "All items from this order have been added to your cart.",
-    });
+  const loadOrders = async () => {
+    try {
+      setLoading(true);
+      const response = await api.getOrders();
+      if (response.success) {
+        setOrders(response.orders || []);
+      }
+    } catch (error) {
+      console.error('Failed to load orders:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load order history.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReorder = async (order) => {
+    try {
+      // Add all items from the order back to cart
+      for (const item of order.items) {
+        await addToCart({
+          id: item.product_id,
+          name: item.product_name,
+          price: item.price
+        }, item.quantity);
+      }
+      
+      toast({
+        title: "Items added to cart",
+        description: "All items from this order have been added to your cart.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add items to cart.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDownloadInvoice = (orderId) => {
-    // Simulate invoice download
     const order = orders.find(o => o.id === orderId);
     if (order) {
-      // Create a simple invoice content
       const invoiceContent = `
         SREEMEDITEC INVOICE
         ==================
         Order #: ${order.id}
-        Date: ${new Date(order.date).toLocaleDateString()}
-        Customer: ${order.customerName}
+        Date: ${new Date(order.created_at).toLocaleDateString()}
+        Customer: ${order.shipping_name}
         
         Items:
-        ${order.items.map(item => `${item.name} x${item.quantity} - ₹${(item.price * item.quantity).toFixed(2)}`).join('\n')}
+        ${order.items.map(item => `${item.product_name} x${item.quantity} - ₹${(item.price * item.quantity).toFixed(2)}`).join('\n')}
         
         Subtotal: ₹${order.subtotal.toFixed(2)}
         Tax: ₹${order.tax.toFixed(2)}
@@ -102,6 +134,14 @@ const OrderHistory = () => {
     );
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="loading-spinner"></div>
+      </div>
+    );
+  }
+
   return (
     <>
       <Helmet>
@@ -137,9 +177,11 @@ const OrderHistory = () => {
                 <p className="text-gray-600 max-w-md mx-auto">
                   You haven't placed any orders yet. Browse our medical equipment store to find the products you need.
                 </p>
-                <Button className="btn-primary">
-                  Start Shopping
-                </Button>
+                <Link to="/store">
+                  <Button className="btn-primary">
+                    Start Shopping
+                  </Button>
+                </Link>
               </motion.div>
             ) : (
               <div className="space-y-6">
@@ -156,7 +198,7 @@ const OrderHistory = () => {
                           <div>
                             <CardTitle className="text-lg">Order #{order.id}</CardTitle>
                             <p className="text-sm text-gray-600">
-                              Placed on {new Date(order.date).toLocaleDateString('en-IN', {
+                              Placed on {new Date(order.created_at).toLocaleDateString('en-IN', {
                                 year: 'numeric',
                                 month: 'long',
                                 day: 'numeric'
@@ -174,14 +216,15 @@ const OrderHistory = () => {
                       <CardContent className="space-y-4">
                         {/* Order Items */}
                         <div className="space-y-3">
-                          {order.items.map((item) => (
-                            <div key={item.id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+                          {order.items && order.items.map((item, idx) => (
+                            <div key={idx} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
                               <img 
-                                alt={item.name}
+                                alt={item.product_name}
                                 className="w-12 h-12 object-cover rounded-md"
-                               src="https://images.unsplash.com/photo-1658204212985-e0126040f88f" />
+                                src="https://images.unsplash.com/photo-1658204212985-e0126040f88f" 
+                              />
                               <div className="flex-1">
-                                <h4 className="font-medium text-gray-900">{item.name}</h4>
+                                <h4 className="font-medium text-gray-900">{item.product_name}</h4>
                                 <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
                               </div>
                               <p className="font-medium">₹{(item.price * item.quantity).toFixed(2)}</p>
@@ -193,11 +236,11 @@ const OrderHistory = () => {
                         <div className="border-t pt-4">
                           <div className="flex justify-between items-center mb-2">
                             <span className="text-gray-600">Subtotal:</span>
-                            <span>₹{order.subtotal.toFixed(2)}</span>
+                            <span>₹{parseFloat(order.subtotal || 0).toFixed(2)}</span>
                           </div>
                           <div className="flex justify-between items-center mb-2">
                             <span className="text-gray-600">Tax (18% GST):</span>
-                            <span>₹{order.tax.toFixed(2)}</span>
+                            <span>₹{parseFloat(order.tax || 0).toFixed(2)}</span>
                           </div>
                           <div className="flex justify-between items-center mb-2">
                             <span className="text-gray-600">Shipping:</span>
@@ -205,21 +248,21 @@ const OrderHistory = () => {
                           </div>
                           <div className="flex justify-between items-center font-bold text-lg border-t pt-2">
                             <span>Total:</span>
-                            <span>₹{order.total.toFixed(2)}</span>
+                            <span>₹{parseFloat(order.total || 0).toFixed(2)}</span>
                           </div>
                         </div>
 
                         {/* Shipping Address */}
                         <div className="bg-gray-50 p-3 rounded-lg">
                           <h4 className="font-medium text-gray-900 mb-1">Shipping Address</h4>
-                          <p className="text-sm text-gray-600">{order.customerName}</p>
-                          <p className="text-sm text-gray-600">{order.address}</p>
-                          <p className="text-sm text-gray-600">{order.phone}</p>
+                          <p className="text-sm text-gray-600">{order.shipping_name}</p>
+                          <p className="text-sm text-gray-600">{order.shipping_address}</p>
+                          <p className="text-sm text-gray-600">{order.shipping_phone}</p>
                         </div>
 
                         {/* Actions */}
                         <div className="flex flex-col sm:flex-row gap-3">
-                          <Link to={`/order-details/${order.id}`}>
+                          <Link to={`/track-order/${order.id}`}>
                             <Button
                               variant="outline"
                               className="flex items-center w-full sm:w-auto"

@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
-import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCart } from '@/contexts/CartContext';
 import { toast } from '@/components/ui/use-toast';
+import { api } from '@/lib/api';
 import ContactInfo from '@/components/checkout/ContactInfo';
 import ShippingInfo from '@/components/checkout/ShippingInfo';
 import PaymentInfo from '@/components/checkout/PaymentInfo';
@@ -57,7 +58,7 @@ const Checkout = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!user) {
       toast({
         title: "Please log in",
@@ -75,7 +76,7 @@ const Checkout = () => {
       if (formData.paymentMethod === 'card') {
         // Simulate Razorpay/Stripe payment
         await new Promise(resolve => setTimeout(resolve, 3000));
-        
+
         // Simulate payment success (90% success rate)
         if (Math.random() < 0.9) {
           const paymentId = 'pay_' + Math.random().toString(36).substr(2, 9);
@@ -132,17 +133,14 @@ const Checkout = () => {
         payment_method: formData.paymentMethod,
         payment_id: paymentId
       };
-      
-      const response = await fetch('/api/orders', {
-        method: 'POST',
+
+      const response = await api.post('/orders', orderData, {
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(orderData)
+        }
       });
 
-      if (response.ok) {
+      if (response.status === 201) {
         console.log('Order saved to backend successfully');
       }
     } catch (error) {
@@ -219,7 +217,7 @@ const Checkout = () => {
                   <ShippingInfo formData={formData} handleInputChange={handleInputChange} handleSelectChange={handleSelectChange} />
                   <PaymentInfo formData={formData} handleSelectChange={handleSelectChange} />
                 </div>
-                
+
                 <div>
                   <OrderSummary cartItems={cartItems} getCartTotal={getCartTotal} isProcessing={isProcessing} />
                 </div>

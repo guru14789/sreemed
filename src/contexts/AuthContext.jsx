@@ -1,4 +1,6 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { toast } from '@/components/ui/use-toast';
 import { api } from '@/lib/api';
 
 const AuthContext = createContext();
@@ -46,9 +48,13 @@ export const AuthProvider = ({ children }) => {
       const response = await api.login(email, password);
       if (response.success) {
         setUser(response.user);
-        return response;
+        toast({
+          title: "Login successful",
+          description: "Welcome back!",
+        });
+        return { success: true };
       }
-      return { success: false, error: response.message || 'Invalid credentials' };
+      return { success: false, error: response.error || 'Invalid credentials' };
     } catch (error) {
       return { success: false, error: error.message };
     }
@@ -59,9 +65,13 @@ export const AuthProvider = ({ children }) => {
       const response = await api.register(userData);
       if (response.success) {
         setUser(response.user);
+        toast({
+          title: "Registration successful",
+          description: "Welcome to Sreemeditec!",
+        });
         return { success: true };
       }
-      return { success: false, error: 'Registration failed' };
+      return { success: false, error: response.error || 'Registration failed' };
     } catch (error) {
       return { success: false, error: error.message };
     }
@@ -75,6 +85,10 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setUser(null);
       api.removeToken();
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out.",
+      });
     }
   };
 
@@ -83,9 +97,36 @@ export const AuthProvider = ({ children }) => {
       const response = await api.updateProfile(userData);
       if (response.success) {
         await loadUserProfile(); // Reload user data
+        toast({
+          title: "Profile updated",
+          description: "Your profile has been updated successfully.",
+        });
         return { success: true };
       }
-      return { success: false, error: 'Update failed' };
+      return { success: false, error: response.error || 'Update failed' };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  };
+
+  const changePassword = async (currentPassword, newPassword) => {
+    try {
+      const response = await api.request('/auth/change-password', {
+        method: 'PUT',
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword
+        }),
+      });
+
+      if (response.success) {
+        toast({
+          title: "Password updated",
+          description: "Your password has been changed successfully.",
+        });
+        return { success: true };
+      }
+      return { success: false, error: response.error || 'Password change failed' };
     } catch (error) {
       return { success: false, error: error.message };
     }
@@ -97,6 +138,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateProfile,
+    changePassword,
     loading
   };
 
