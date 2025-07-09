@@ -77,10 +77,10 @@ function handleCreateOrder() {
         $db->beginTransaction();
         
         // Get cart items
-        $query = "SELECT ci.*, p.price, p.stock_quantity 
-                  FROM cart_items ci 
-                  JOIN products p ON ci.product_id = p.id 
-                  WHERE ci.user_id = :user_id AND p.is_active = TRUE";
+        $query = "SELECT c.*, p.price, p.stock_quantity 
+                  FROM cart c 
+                  JOIN products p ON c.product_id = p.id 
+                  WHERE c.user_id = :user_id AND p.is_active = TRUE";
         
         $stmt = $db->prepare($query);
         $stmt->bindParam(':user_id', $user['user_id']);
@@ -137,6 +137,31 @@ function handleCreateOrder() {
             // Update product stock
             $query = "UPDATE products SET stock_quantity = stock_quantity - :quantity WHERE id = :product_id";
             $stmt = $db->prepare($query);
+            $stmt->bindParam(':quantity', $item['quantity']);
+            $stmt->bindParam(':product_id', $item['product_id']);
+            $stmt->execute();
+        }
+        
+        // Clear cart
+        $clearCartQuery = "DELETE FROM cart WHERE user_id = :user_id";
+        $clearCartStmt = $db->prepare($clearCartQuery);
+        $clearCartStmt->bindParam(':user_id', $user['user_id']);
+        $clearCartStmt->execute();
+        
+        $db->commit();
+        
+        echo json_encode([
+            'success' => true,
+            'order_id' => $orderId,
+            'message' => 'Order created successfully'
+        ]);
+        
+    } catch (Exception $e) {
+        $db->rollback();
+        http_response_code(500);
+        echo json_encode(['error' => 'Order creation failed: ' . $e->getMessage()]);
+    }
+}
             <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../utils/jwt.php';
@@ -270,7 +295,7 @@ function handleCreateOrder() {
         }
         
         // Clear cart
-        $clearCartQuery = "DELETE FROM cart_items WHERE user_id = :user_id";
+        $clearCartQuery = "DELETE FROM cart WHERE user_id = :user_id";
         $clearCartStmt = $db->prepare($clearCartQuery);
         $clearCartStmt->bindParam(':user_id', $user['user_id']);
         $clearCartStmt->execute();

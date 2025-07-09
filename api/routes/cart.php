@@ -1,4 +1,3 @@
-
 <?php
 require_once 'config/database.php';
 require_once 'utils/jwt.php';
@@ -6,20 +5,20 @@ require_once 'utils/jwt.php';
 function handleGetCart() {
     $user = authenticateUser();
     if (!$user) return;
-    
+
     global $db;
-    
-    $query = "SELECT ci.*, p.name, p.price, p.image_url, p.stock_quantity 
-              FROM cart_items ci 
-              JOIN products p ON ci.product_id = p.id 
-              WHERE ci.user_id = :user_id AND p.is_active = TRUE";
-    
+
+    $query = "SELECT c.*, p.name, p.price, p.image_url, p.stock_quantity 
+              FROM cart c 
+              JOIN products p ON c.product_id = p.id 
+              WHERE c.user_id = :user_id AND p.is_active = TRUE";
+
     $stmt = $db->prepare($query);
     $stmt->bindParam(':user_id', $user['user_id']);
     $stmt->execute();
-    
+
     $cartItems = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     echo json_encode([
         'cart_items' => $cartItems,
         'total_items' => array_sum(array_column($cartItems, 'quantity')),
@@ -32,61 +31,61 @@ function handleGetCart() {
 function handleAddToCart() {
     $user = authenticateUser();
     if (!$user) return;
-    
+
     global $db;
-    
+
     $data = json_decode(file_get_contents("php://input"), true);
-    
+
     if (!isset($data['product_id']) || !isset($data['quantity'])) {
         http_response_code(400);
         echo json_encode(['error' => 'Product ID and quantity are required']);
         return;
     }
-    
+
     // Check if product exists and is active
     $query = "SELECT stock_quantity FROM products WHERE id = :product_id AND is_active = TRUE";
     $stmt = $db->prepare($query);
     $stmt->bindParam(':product_id', $data['product_id']);
     $stmt->execute();
-    
+
     $product = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     if (!$product) {
         http_response_code(404);
         echo json_encode(['error' => 'Product not found']);
         return;
     }
-    
+
     if ($product['stock_quantity'] < $data['quantity']) {
         http_response_code(400);
         echo json_encode(['error' => 'Insufficient stock']);
         return;
     }
-    
+
     // Check if item already exists in cart
-    $query = "SELECT id, quantity FROM cart_items WHERE user_id = :user_id AND product_id = :product_id";
+    $query = "SELECT id, quantity FROM cart WHERE user_id = :user_id AND product_id = :product_id";
     $stmt = $db->prepare($query);
     $stmt->bindParam(':user_id', $user['user_id']);
     $stmt->bindParam(':product_id', $data['product_id']);
     $stmt->execute();
-    
+
     $existingItem = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     if ($existingItem) {
         // Update existing item
         $newQuantity = $existingItem['quantity'] + $data['quantity'];
-        
+
         if ($newQuantity > $product['stock_quantity']) {
             http_response_code(400);
             echo json_encode(['error' => 'Insufficient stock']);
             return;
         }
-        
-        $query = "UPDATE cart_items SET quantity = :quantity WHERE id = :id";
+
+        $query = "UPDATE cart SET quantity = :quantity WHERE id = :id";
         $stmt = $db->prepare($query);
         $stmt->bindParam(':quantity', $newQuantity);
         $stmt->bindParam(':id', $existingItem['id']);
-        
+
         if ($stmt->execute()) {
             echo json_encode([
                 'success' => true,
@@ -98,12 +97,12 @@ function handleAddToCart() {
         }
     } else {
         // Add new item
-        $query = "INSERT INTO cart_items (user_id, product_id, quantity) VALUES (:user_id, :product_id, :quantity)";
+        $query = "INSERT INTO cart (user_id, product_id, quantity) VALUES (:user_id, :product_id, :quantity)";
         $stmt = $db->prepare($query);
         $stmt->bindParam(':user_id', $user['user_id']);
         $stmt->bindParam(':product_id', $data['product_id']);
         $stmt->bindParam(':quantity', $data['quantity']);
-        
+
         if ($stmt->execute()) {
             echo json_encode([
                 'success' => true,
@@ -119,52 +118,52 @@ function handleAddToCart() {
 function handleUpdateCartItem($item_id) {
     $user = authenticateUser();
     if (!$user) return;
-    
+
     global $db;
-    
+
     $data = json_decode(file_get_contents("php://input"), true);
-    
+
     if (!isset($data['quantity'])) {
         http_response_code(400);
         echo json_encode(['error' => 'Quantity is required']);
         return;
     }
-    
+
     if ($data['quantity'] <= 0) {
         handleRemoveFromCart($item_id);
         return;
     }
-    
+
     // Check if item belongs to user
-    $query = "SELECT ci.product_id, p.stock_quantity 
-              FROM cart_items ci 
-              JOIN products p ON ci.product_id = p.id 
-              WHERE ci.id = :item_id AND ci.user_id = :user_id";
-    
+    $query = "SELECT c.product_id, p.stock_quantity 
+              FROM cart c 
+              JOIN products p ON c.product_id = p.id 
+              WHERE c.id = :item_id AND c.user_id = :user_id";
+
     $stmt = $db->prepare($query);
     $stmt->bindParam(':item_id', $item_id);
     $stmt->bindParam(':user_id', $user['user_id']);
     $stmt->execute();
-    
+
     $item = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     if (!$item) {
         http_response_code(404);
         echo json_encode(['error' => 'Cart item not found']);
         return;
     }
-    
+
     if ($data['quantity'] > $item['stock_quantity']) {
         http_response_code(400);
         echo json_encode(['error' => 'Insufficient stock']);
         return;
     }
-    
-    $query = "UPDATE cart_items SET quantity = :quantity WHERE id = :item_id";
+
+    $query = "UPDATE cart SET quantity = :quantity WHERE id = :item_id";
     $stmt = $db->prepare($query);
     $stmt->bindParam(':quantity', $data['quantity']);
     $stmt->bindParam(':item_id', $item_id);
-    
+
     if ($stmt->execute()) {
         echo json_encode([
             'success' => true,
@@ -179,14 +178,14 @@ function handleUpdateCartItem($item_id) {
 function handleRemoveFromCart($item_id) {
     $user = authenticateUser();
     if (!$user) return;
-    
+
     global $db;
-    
-    $query = "DELETE FROM cart_items WHERE id = :item_id AND user_id = :user_id";
+
+    $query = "DELETE FROM cart WHERE id = :item_id AND user_id = :user_id";
     $stmt = $db->prepare($query);
     $stmt->bindParam(':item_id', $item_id);
     $stmt->bindParam(':user_id', $user['user_id']);
-    
+
     if ($stmt->execute()) {
         echo json_encode([
             'success' => true,
@@ -209,20 +208,20 @@ function handleGetCart() {
         echo json_encode(['error' => 'Unauthorized']);
         return;
     }
-    
+
     global $db;
-    
-    $query = "SELECT ci.*, p.name, p.price, p.image_url, p.stock_quantity
-              FROM cart_items ci
-              JOIN products p ON ci.product_id = p.id
-              WHERE ci.user_id = :user_id AND p.is_active = 1
-              ORDER BY ci.created_at DESC";
+
+    $query = "SELECT c.*, p.name, p.price, p.image_url, p.stock_quantity
+              FROM cart c
+              JOIN products p ON c.product_id = p.id
+              WHERE c.user_id = :user_id AND p.is_active = 1
+              ORDER BY c.created_at DESC";
     $stmt = $db->prepare($query);
     $stmt->bindParam(':user_id', $user['user_id']);
     $stmt->execute();
-    
+
     $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     echo json_encode(['success' => true, 'items' => $items]);
 }
 
@@ -233,44 +232,44 @@ function handleAddToCart() {
         echo json_encode(['error' => 'Unauthorized']);
         return;
     }
-    
+
     global $db;
-    
+
     $data = json_decode(file_get_contents("php://input"), true);
-    
+
     if (!isset($data['product_id']) || !isset($data['quantity'])) {
         http_response_code(400);
         echo json_encode(['error' => 'Product ID and quantity are required']);
         return;
     }
-    
+
     // Check if item already exists in cart
-    $checkQuery = "SELECT id, quantity FROM cart_items WHERE user_id = :user_id AND product_id = :product_id";
+    $checkQuery = "SELECT id, quantity FROM cart WHERE user_id = :user_id AND product_id = :product_id";
     $checkStmt = $db->prepare($checkQuery);
     $checkStmt->bindParam(':user_id', $user['user_id']);
     $checkStmt->bindParam(':product_id', $data['product_id']);
     $checkStmt->execute();
-    
+
     $existingItem = $checkStmt->fetch(PDO::FETCH_ASSOC);
-    
+
     if ($existingItem) {
         // Update quantity
         $newQuantity = $existingItem['quantity'] + $data['quantity'];
-        $updateQuery = "UPDATE cart_items SET quantity = :quantity WHERE id = :id";
+        $updateQuery = "UPDATE cart SET quantity = :quantity WHERE id = :id";
         $updateStmt = $db->prepare($updateQuery);
         $updateStmt->bindParam(':quantity', $newQuantity);
         $updateStmt->bindParam(':id', $existingItem['id']);
         $updateStmt->execute();
     } else {
         // Insert new item
-        $insertQuery = "INSERT INTO cart_items (user_id, product_id, quantity) VALUES (:user_id, :product_id, :quantity)";
+        $insertQuery = "INSERT INTO cart (user_id, product_id, quantity) VALUES (:user_id, :product_id, :quantity)";
         $insertStmt = $db->prepare($insertQuery);
         $insertStmt->bindParam(':user_id', $user['user_id']);
         $insertStmt->bindParam(':product_id', $data['product_id']);
         $insertStmt->bindParam(':quantity', $data['quantity']);
         $insertStmt->execute();
     }
-    
+
     echo json_encode(['success' => true, 'message' => 'Item added to cart']);
 }
 
@@ -281,17 +280,17 @@ function handleUpdateCartItem($id) {
         echo json_encode(['error' => 'Unauthorized']);
         return;
     }
-    
+
     global $db;
-    
+
     $data = json_decode(file_get_contents("php://input"), true);
-    
-    $query = "UPDATE cart_items SET quantity = :quantity WHERE id = :id AND user_id = :user_id";
+
+    $query = "UPDATE cart SET quantity = :quantity WHERE id = :id AND user_id = :user_id";
     $stmt = $db->prepare($query);
     $stmt->bindParam(':quantity', $data['quantity']);
     $stmt->bindParam(':id', $id);
     $stmt->bindParam(':user_id', $user['user_id']);
-    
+
     if ($stmt->execute()) {
         echo json_encode(['success' => true, 'message' => 'Cart item updated']);
     } else {
@@ -307,14 +306,14 @@ function handleRemoveFromCart($id) {
         echo json_encode(['error' => 'Unauthorized']);
         return;
     }
-    
+
     global $db;
-    
-    $query = "DELETE FROM cart_items WHERE id = :id AND user_id = :user_id";
+
+    $query = "DELETE FROM cart WHERE id = :id AND user_id = :user_id";
     $stmt = $db->prepare($query);
     $stmt->bindParam(':id', $id);
     $stmt->bindParam(':user_id', $user['user_id']);
-    
+
     if ($stmt->execute()) {
         echo json_encode(['success' => true, 'message' => 'Item removed from cart']);
     } else {

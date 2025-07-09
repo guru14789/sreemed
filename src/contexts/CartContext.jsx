@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,7 +29,7 @@ export const CartProvider = ({ children }) => {
 
   const loadCart = async () => {
     if (!user) return;
-    
+
     try {
       setLoading(true);
       const response = await api.getCart();
@@ -62,7 +61,7 @@ export const CartProvider = ({ children }) => {
     try {
       setLoading(true);
       const response = await api.addToCart(product.id, quantity);
-      
+
       if (response.success) {
         await loadCart(); // Reload cart from server
         toast({
@@ -95,7 +94,7 @@ export const CartProvider = ({ children }) => {
     try {
       setLoading(true);
       const response = await api.updateCartItem(itemId, quantity);
-      
+
       if (response.success) {
         await loadCart(); // Reload cart from server
       } else {
@@ -119,7 +118,7 @@ export const CartProvider = ({ children }) => {
     try {
       setLoading(true);
       const response = await api.removeFromCart(itemId);
-      
+
       if (response.success) {
         await loadCart(); // Reload cart from server
         toast({
@@ -149,7 +148,7 @@ export const CartProvider = ({ children }) => {
       // Remove all items from cart
       const promises = cartItems.map(item => api.removeFromCart(item.id));
       await Promise.all(promises);
-      
+
       setCartItems([]);
       toast({
         title: "Cart cleared",
@@ -183,6 +182,10 @@ export const CartProvider = ({ children }) => {
     return cartItems.some(item => item.product_id === productId);
   };
 
+  const getCartItemsCount = () => {
+    return cartItems.reduce((total, item) => total + item.quantity, 0);
+  };
+
   const value = {
     cartItems,
     loading,
@@ -193,7 +196,8 @@ export const CartProvider = ({ children }) => {
     getCartTotal,
     getItemCount,
     isInCart,
-    loadCart
+    loadCart,
+    getCartItemsCount
   };
 
   return (

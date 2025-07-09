@@ -74,10 +74,10 @@ function handlePaymentSuccess() {
         $stmt->execute();
         
         // Create the actual order
-        $cartQuery = "SELECT ci.*, p.price 
-                      FROM cart_items ci 
-                      JOIN products p ON ci.product_id = p.id 
-                      WHERE ci.user_id = :user_id AND p.is_active = 1";
+        $cartQuery = "SELECT c.*, p.price 
+                      FROM cart c 
+                      JOIN products p ON c.product_id = p.id 
+                      WHERE c.user_id = :user_id AND p.is_active = 1";
         $cartStmt = $db->prepare($cartQuery);
         $cartStmt->bindParam(':user_id', $user['user_id']);
         $cartStmt->execute();
@@ -116,7 +116,7 @@ function handlePaymentSuccess() {
             }
             
             // Clear cart
-            $clearCartQuery = "DELETE FROM cart_items WHERE user_id = :user_id";
+            $clearCartQuery = "DELETE FROM cart WHERE user_id = :user_id";
             $clearCartStmt = $db->prepare($clearCartQuery);
             $clearCartStmt->bindParam(':user_id', $user['user_id']);
             $clearCartStmt->execute();
