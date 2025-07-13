@@ -19,7 +19,8 @@ class Database {
             $this->conn->exec("set names utf8");
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         } catch(PDOException $exception) {
-            echo "Connection error: " . $exception->getMessage();
+            error_log("Database connection error: " . $exception->getMessage());
+            throw new Exception("Database connection failed");
         }
         
         return $this->conn;
@@ -87,6 +88,8 @@ CREATE TABLE IF NOT EXISTS orders (
     billing_address TEXT,
     phone VARCHAR(20),
     notes TEXT,
+    payment_id VARCHAR(255),
+    payment_status ENUM('pending', 'completed', 'failed') DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
@@ -109,12 +112,32 @@ CREATE TABLE IF NOT EXISTS password_resets (
     expires_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS contact_submissions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    subject VARCHAR(255),
+    message TEXT NOT NULL,
+    status ENUM('pending', 'reviewed', 'responded') DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS order_tracking (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT,
+    status VARCHAR(50) NOT NULL,
+    location VARCHAR(255),
+    description TEXT,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+);
 ";
 
 try {
     $db->exec($createTables);
 } catch(PDOException $exception) {
-    echo "Error creating tables: " . $exception->getMessage();
+    error_log("Error creating tables: " . $exception->getMessage());
 }
 
 // Insert default categories
@@ -130,7 +153,7 @@ INSERT IGNORE INTO categories (id, name, slug) VALUES
 try {
     $db->exec($insertCategories);
 } catch(PDOException $exception) {
-    echo "Error inserting categories: " . $exception->getMessage();
+    error_log("Error inserting categories: " . $exception->getMessage());
 }
 
 // Insert sample products
@@ -146,7 +169,7 @@ INSERT IGNORE INTO products (id, name, description, price, category_id, brand, m
 try {
     $db->exec($insertProducts);
 } catch(PDOException $exception) {
-    echo "Error inserting products: " . $exception->getMessage();
+    error_log("Error inserting products: " . $exception->getMessage());
 }
 
 // Insert admin user
@@ -159,28 +182,6 @@ INSERT IGNORE INTO users (id, name, email, password, role, email_verified) VALUE
 try {
     $db->exec($insertAdmin);
 } catch(PDOException $exception) {
-    echo "Error inserting admin user: " . $exception->getMessage();
-}
-?>
-<?php
-class Database {
-    private $host = "localhost";
-    private $db_name = "sreemeditec_db";
-    private $username = "root";
-    private $password = "";
-    private $conn;
-
-    public function getConnection() {
-        $this->conn = null;
-
-        try {
-            $this->conn = new PDO("mysql:host=" . $this->host . ";dbname=" . $this->db_name, $this->username, $this->password);
-            $this->conn->exec("set names utf8");
-        } catch(PDOException $exception) {
-            echo "Connection error: " . $exception->getMessage();
-        }
-
-        return $this->conn;
-    }
+    error_log("Error inserting admin user: " . $exception->getMessage());
 }
 ?>
