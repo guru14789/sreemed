@@ -1,9 +1,9 @@
-
 { pkgs ? import <nixpkgs> {} }:
 
 pkgs.mkShell {
   buildInputs = [
-    pkgs.php
+    pkgs.nodejs
+    pkgs.mongodb
     pkgs.sudo
   ];
 }
