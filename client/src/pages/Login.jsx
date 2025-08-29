@@ -3,12 +3,13 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Mail, Lock, AlertTriangle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/components/ui/use-toast';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -17,9 +18,9 @@ const Login = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [emailNotConfirmed, setEmailNotConfirmed] = useState(false);
-  const { login, resendConfirmationEmail } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -32,35 +33,18 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setEmailNotConfirmed(false);
 
-    try {
-      const result = await login(formData.email, formData.password);
-      if (result.success) {
-        navigate('/');
-      } else {
-        if (result.error && result.error.includes('EMAIL_NOT_CONFIRMED')) {
-          setEmailNotConfirmed(true);
-        }
-        // Handle other login errors here if needed
-      }
-    } catch (error) {
-      if (error.code === 'EMAIL_NOT_CONFIRMED') {
-        setEmailNotConfirmed(true);
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const result = await login(formData.email, formData.password);
+    setIsLoading(false);
 
-  const handleResendConfirmation = async () => {
-    setIsLoading(true);
-    try {
-      await resendConfirmationEmail(formData.email);
-    } catch (error) {
-      // Error is handled in the auth context with a toast
-    } finally {
-      setIsLoading(false);
+    if (result.success) {
+      navigate('/');
+    } else {
+      toast({
+        title: 'Login Failed',
+        description: result.error || 'Invalid credentials. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -90,30 +74,6 @@ const Login = () => {
             </CardHeader>
 
             <CardContent className="space-y-6">
-              {emailNotConfirmed && (
-                <div className="p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 rounded-md">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <AlertTriangle className="h-5 w-5 text-yellow-500" />
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium">Email not confirmed</h3>
-                      <div className="mt-2 text-sm">
-                        <p>Please check your inbox to confirm your email. Can't find it?</p>
-                        <Button
-                          variant="link"
-                          className="p-0 h-auto font-medium text-yellow-900 hover:text-yellow-700"
-                          onClick={handleResendConfirmation}
-                          disabled={isLoading}
-                        >
-                          {isLoading ? 'Sending...' : 'Resend confirmation email'}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
@@ -182,9 +142,6 @@ const Login = () => {
                   disabled={isLoading}
                   className="w-full btn-primary text-lg py-3"
                 >
-                  {isLoading ? (
-                    <div className="loading-spinner mr-2"></div>
-                  ) : null}
                   {isLoading ? 'Signing in...' : 'Sign In'}
                 </Button>
               </form>

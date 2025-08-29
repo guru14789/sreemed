@@ -18,7 +18,7 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { getCartItemsCount } = useCart();
+  const { getItemCount } = useCart();
 
   const navigation = [
     { name: 'Home', href: '/' },
@@ -81,9 +81,9 @@ const Navbar = () => {
             {/* Cart */}
             <Link to="/cart" className="relative text-gray-700 hover:text-[#1d7d69] transition">
               <ShoppingCart className="w-5 h-5" />
-              {getCartItemsCount() > 0 && (
+              {getItemCount() > 0 && (
                 <span className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-[#1d7d69] text-white text-xs flex items-center justify-center">
-                  {getCartItemsCount()}
+                  {getItemCount()}
                 </span>
               )}
             </Link>
@@ -134,9 +134,9 @@ const Navbar = () => {
           <div className="md:hidden flex items-center">
             <Link to="/cart" className="relative p-2 text-gray-700 hover:text-[#1d7d69] transition-colors mr-1">
               <ShoppingCart className="w-5 h-5" />
-              {getCartItemsCount() > 0 && (
+              {getItemCount() > 0 && (
                 <span className="absolute top-1 right-1 h-4 w-4 rounded-full bg-[#1d7d69] text-white text-xs flex items-center justify-center">
-                  {getCartItemsCount()}
+                  {getItemCount()}
                 </span>
               )}
             </Link>

@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = 'http://localhost:5000/api';
 
 class ApiClient {
   constructor() {
@@ -24,7 +24,7 @@ class ApiClient {
     const config = {
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
+        ...(token && { 'x-auth-token': token }),
         ...options.headers,
       },
       ...options,
@@ -34,13 +34,13 @@ class ApiClient {
       console.log(`Making request to: ${url}`);
       const response = await fetch(url, config);
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Request failed: ${response.status} ${response.statusText}`, errorText);
-        throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+        console.error(`Request failed: ${response.status} ${response.statusText}`, data);
+        throw new Error(data.msg || `Request failed: ${response.status} ${response.statusText}`);
       }
 
-      const data = await response.json();
       return data;
     } catch (error) {
       console.error('API request error:', error);
@@ -50,12 +50,12 @@ class ApiClient {
 
   // Auth methods
   async login(email, password) {
-    const response = await this.request('/auth/login', {
+    const response = await this.request('/users/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
 
-    if (response.success && response.token) {
+    if (response.token) {
       this.setToken(response.token);
     }
 
@@ -63,63 +63,20 @@ class ApiClient {
   }
 
   async register(userData) {
-    const response = await this.request('/auth/register', {
+    const response = await this.request('/users/register', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
 
-    if (response.success) {
+    if (response.token) {
       this.setToken(response.token);
     }
 
     return response;
   }
 
-  async logout() {
-    await this.request('/auth/logout', { method: 'POST' });
+  logout() {
     this.removeToken();
-  }
-
-  async getProfile() {
-    return this.request('/auth/profile');
-  }
-
-  async updateProfile(userData) {
-    return this.request('/auth/profile', {
-      method: 'PUT',
-      body: JSON.stringify(userData),
-    });
-  }
-
-  async getCart() {
-    const response = await this.request('/cart');
-    return response;
-  }
-
-  async addToCart(productId, quantity = 1) {
-    const response = await this.request('/cart', {
-      method: 'POST',
-      body: JSON.stringify({
-        product_id: productId,
-        quantity: quantity
-      }),
-    });
-    return response;
-  }
-
-  async updateCartItem(itemId, quantity) {
-    const response = await this.request(`/cart/${itemId}`, {
-      method: 'PUT',
-      body: JSON.stringify({ quantity }),
-    });
-    return response;
-  }
-
-  async removeFromCart(itemId) {
-    const response = await this.request(`/cart/${itemId}`, {
-      method: 'DELETE',
-    });
-    return response;
   }
 
   // Orders API
@@ -128,8 +85,8 @@ class ApiClient {
     return response;
   }
 
-  async getOrder(orderId) {
-    const response = await this.request(`/orders/${orderId}`);
+  async getAllOrders() {
+    const response = await this.request('/orders/all');
     return response;
   }
 
@@ -187,35 +144,6 @@ class ApiClient {
   // Users API (Admin only)
   async getUsers() {
     const response = await this.request('/users');
-    return response;
-  }
-
-  async getUser(userId) {
-    const response = await this.request(`/users/${userId}`);
-    return response;
-  }
-
-  async updateUser(userId, userData) {
-    const response = await this.request(`/users/${userId}`, {
-      method: 'PUT',
-      body: JSON.stringify(userData),
-    });
-    return response;
-  }
-
-  async deleteUser(userId) {
-    const response = await this.request(`/users/${userId}`, {
-      method: 'DELETE',
-    });
-    return response;
-  }
-
-  // Contact API
-  async submitContact(contactData) {
-    const response = await this.request('/contact', {
-      method: 'POST',
-      body: JSON.stringify(contactData),
-    });
     return response;
   }
 }

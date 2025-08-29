@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/components/ui/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -24,6 +24,7 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -35,7 +36,7 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (formData.password !== formData.confirmPassword) {
       toast({
         title: "Password mismatch",
@@ -47,21 +48,25 @@ const Register = () => {
 
     setIsLoading(true);
 
-    try {
-      const userData = {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        password: formData.password,
-        address: formData.address
-      };
-      
-      await register(userData);
+    const userData = {
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      password: formData.password,
+      address: formData.address
+    };
+
+    const result = await register(userData);
+    setIsLoading(false);
+
+    if (result.success) {
       navigate('/');
-    } catch (error) {
-      // Error is handled in the auth context
-    } finally {
-      setIsLoading(false);
+    } else {
+      toast({
+        title: 'Registration Failed',
+        description: result.error || 'An error occurred. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -228,9 +233,6 @@ const Register = () => {
                   disabled={isLoading}
                   className="w-full btn-primary text-lg py-3"
                 >
-                  {isLoading ? (
-                    <div className="loading-spinner mr-2"></div>
-                  ) : null}
                   {isLoading ? 'Creating account...' : 'Create Account'}
                 </Button>
               </form>
