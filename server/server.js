@@ -1,17 +1,19 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-require('dotenv').config();
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import userRoutes from './routes/user.js';
+import productRoutes from './routes/products.js';
+import orderRoutes from './routes/orders.js';
+
+dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 5001;
 
-const corsOptions = {
-  origin: 'https://3000-firebase-sreemeditecgit-1756351109196.cluster-bg6uurscprhn6qxr6xwtrhvkf6.cloudworkstations.dev',
-  optionsSuccessStatus: 200
-};
+// A less restrictive CORS policy for debugging
+app.use(cors());
 
-app.use(cors(corsOptions));
 app.use(express.json());
 
 const uri = process.env.MONGO_URI;
@@ -21,9 +23,9 @@ connection.once('open', () => {
   console.log("MongoDB database connection established successfully");
 })
 
-app.use('/api/users', require('./routes/user'));
-app.use('/api/products', require('./routes/products'));
-app.use('/api/orders', require('./routes/orders'));
+app.use('/api/users', userRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/orders', orderRoutes);
 
 app.get('/', (req, res) => {
   res.send('Hello from the MERN stack!');
