@@ -9,7 +9,7 @@ import orderRoutes from './routes/orders.js';
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 5001;
+const port = process.env.PORT || 5002;
 
 // A less restrictive CORS policy for debugging
 app.use(cors());
