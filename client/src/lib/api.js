@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:5002/api';
+const API_BASE_URL = '/api';
 
 class ApiClient {
   constructor() {
@@ -50,7 +50,7 @@ class ApiClient {
 
   // Auth methods
   async login(email, password) {
-    const response = await this.request('/users/login', {
+    const response = await this.request('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
@@ -63,7 +63,7 @@ class ApiClient {
   }
 
   async register(userData) {
-    const response = await this.request('/users/register', {
+    const response = await this.request('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
