@@ -73,7 +73,7 @@ const Cart = () => {
               {cartItems.map((item) => (
                 <div key={item.id} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center border-b pb-4 last:border-b-0 last:pb-0">
                   <div className="md:col-span-5 flex items-center space-x-4">
-                    <img  class="w-20 h-20 object-cover rounded-md flex-shrink-0" alt={item.name} src="https://images.unsplash.com/photo-1693264251393-d28f984ca283" />
+                    <img className="w-20 h-20 object-cover rounded-md flex-shrink-0" alt={item.name} src="https://images.unsplash.com/photo-1693264251393-d28f984ca283" />
                     <div>
                       <p className="font-semibold text-gray-900">{item.name}</p>
                       <p className="text-sm text-gray-600">{item.category}</p>
