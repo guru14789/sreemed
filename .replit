@@ -50,13 +50,13 @@ args = "Frontend"
 name = "Backend API"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "console"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd php-backend && php -S 0.0.0.0:8000 -t public/"
 waitForPort = 8000
-
-[workflows.workflow.metadata]
-outputType = "console"
 
 [[workflows.workflow]]
 name = "Frontend"
@@ -87,7 +87,7 @@ localPort = 8000
 externalPort = 8000
 
 [[ports]]
-localPort = 39619
+localPort = 45275
 externalPort = 3002
 
 [agent]
