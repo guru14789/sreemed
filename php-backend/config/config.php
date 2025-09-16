@@ -24,6 +24,9 @@ define('BASE_PATH', dirname(__DIR__));
 define('UPLOAD_PATH', BASE_PATH . '/uploads/');
 define('MAX_FILE_SIZE', (int)$_ENV['MAX_FILE_SIZE']);
 define('ALLOWED_FILE_TYPES', explode(',', $_ENV['ALLOWED_FILE_TYPES']));
+define('APP_MODE', $_ENV['APP_MODE'] ?? 'production');
+define('IS_DEMO_MODE', APP_MODE === 'demo');
+define('IS_PRODUCTION', ($_ENV['APP_ENV'] ?? 'production') === 'production');
 
 // Session configuration
 ini_set('session.cookie_httponly', 1);

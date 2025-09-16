@@ -1,6 +1,10 @@
 <?php
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../config/health.php';
+
+// Perform startup health check
+HealthChecker::failIfProductionMisconfigured();
 
 // Test database connection (non-blocking for development)
 $dbConnected = DatabaseConnection::testConnection();

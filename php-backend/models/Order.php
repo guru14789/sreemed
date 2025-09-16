@@ -48,8 +48,23 @@ class Order
             return ['success' => false, 'errors' => $errors];
         }
         
-        // Create Razorpay order (placeholder - will be implemented with actual integration)
-        $razorpayOrderId = 'order_' . uniqid();
+        // Create Razorpay order
+        require_once __DIR__ . '/../config/payment.php';
+        $payment = new RazorpayPayment();
+        
+        $paymentResult = $payment->createOrder($orderData['total_amount'], 'INR', [
+            'receipt' => 'order_' . uniqid(),
+            'notes' => [
+                'user_id' => $userId,
+                'order_internal_id' => uniqid()
+            ]
+        ]);
+        
+        if (!$paymentResult['success']) {
+            return ['success' => false, 'errors' => ['Failed to create payment order']];
+        }
+        
+        $razorpayOrderId = $paymentResult['order_id'];
         
         $order = [
             'user_id' => $userId,
@@ -87,7 +102,7 @@ class Order
         }
     }
     
-    public function getOrderById(string $orderId, string $userId = null): ?array
+    public function getOrderById(string $orderId, ?string $userId = null): ?array
     {
         // Demo mode
         if (!extension_loaded('mongodb')) {
