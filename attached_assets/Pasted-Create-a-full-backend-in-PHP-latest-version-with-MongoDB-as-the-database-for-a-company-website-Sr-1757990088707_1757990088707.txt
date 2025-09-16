@@ -1,0 +1,147 @@
+Create a full backend in PHP (latest version) with MongoDB as the database for a company website (Sree Meditec). 
+The backend should be production-ready, modular, secure, and scalable.  
+
+## Core Requirements
+
+### 1. Tech Stack
+- PHP 8+ (plain PHP with Composer OR Laravel framework preferred)
+- MongoDB as primary database
+- Session-based + JWT authentication
+- Centralized `.env` file for configuration (DB, Razorpay, DTDC, Mail, Port)
+- PSR-4 autoloading, organized in MVC structure
+- Composer for dependencies (mongodb/mongodb, vlucas/phpdotenv, phpmailer/phpmailer)
+
+### 2. Authentication & User Management
+- Register (username, email, password, phone)
+  - Passwords hashed with bcrypt/argon2
+  - Email uniqueness check
+- Login with email + password
+- Logout (destroy session / invalidate JWT)
+- Forgot Password (OTP/email link)
+- Reset Password
+- Role-based access: User, Admin
+- Profile management:
+  - View & edit profile (username, email, phone, address, profile picture)
+  - Upload profile picture (stored in `/uploads/`, path in DB)
+  - Order history (past orders with status + tracking)
+  - Order status (Pending, Confirmed, Packed, Shipped, Delivered, Cancelled)
+  - Re-order option
+
+### 3. Admin Dashboard
+- Manage Products (Add/Update/Delete, images)
+- Manage Services (Add/Update/Delete)
+- Manage Users (View, block/unblock, reset password)
+- Manage Orders (update order status, assign courier, trigger notifications)
+- Sales & analytics dashboard (daily/weekly/monthly sales, revenue, top products)
+
+### 4. E-Commerce Features
+- Product listing, categories, tags
+- Product details API
+- Cart system (persistent, linked to user)
+- Wishlist/Favorites
+- Checkout flow
+- Order placement → Razorpay payment → DTDC shipping
+
+### 5. Payment Integration (Razorpay)
+- Use Razorpay API for payments
+- Create payment orders server-side
+- Handle payment capture
+- Razorpay Webhook:
+  - Update order status in MongoDB
+  - Handle success/failure/refunds
+  - Store transaction logs
+- Refund API support
+
+### 6. Courier Integration (DTDC API)
+- DTDC API integration for shipping & tracking
+- On successful payment → auto-generate shipment with DTDC
+- Store AWB number & courier details in MongoDB
+- Track shipment via DTDC API
+- Sync tracking history & update user order status
+
+### 7. API Endpoints
+- `/api/auth/register`
+- `/api/auth/login`
+- `/api/auth/logout`
+- `/api/auth/reset-password`
+- `/api/user/profile` (view/edit)
+- `/api/user/orders` (list history)
+- `/api/user/order/{id}` (track order)
+- `/api/products` (list all products)
+- `/api/products/{id}` (get product details)
+- `/api/services` (list services)
+- `/api/pages/{page_name}` (CMS pages: about, contact, etc.)
+- `/api/cart` (add/remove/view items)
+- `/api/checkout` (initiate Razorpay payment)
+- `/api/payment/webhook` (Razorpay callback)
+- `/api/shipping/track/{awb}` (track DTDC shipment)
+- `/api/admin/*` (all admin-only routes)
+
+### 8. Database Structure (MongoDB Collections)
+- `users` → { _id, username, email, password, phone, address, profile_picture, role }
+- `products` → { _id, name, description, category, tags, price, image, stock }
+- `services` → { _id, title, description, pricing }
+- `orders` → { _id, user_id, products[], total_price, payment_status, razorpay_id, courier, awb, status, created_at }
+- `pages` → { _id, page_name, content }
+- `transactions` → { _id, user_id, order_id, razorpay_id, status, amount, created_at }
+- `courier_logs` → { _id, order_id, awb, status, history[] }
+
+### 9. Configuration
+- Centralized `.env` file:
+  - App Port
+  - MongoDB credentials
+  - JWT Secret
+  - Razorpay API keys
+  - DTDC API keys
+  - Mail SMTP credentials
+- `config/` folder: 
+  - `config/db.php` → MongoDB connection
+  - `config/payment.php` → Razorpay
+  - `config/courier.php` → DTDC
+  - `config/mail.php` → SMTP settings
+
+### 10. Notifications
+- Email confirmation for register, order, payment
+- SMS/Email for order status updates
+- Razorpay payment confirmation via email
+
+### 11. Security
+- CSRF protection for forms
+- Input validation & sanitization
+- JWT expiry & refresh tokens
+- Rate limiting (to prevent brute-force)
+- File upload restrictions (images only, size limit)
+
+### 12. Project Structure
+/project  
+  /public  
+    index.php  
+    login.php  
+    register.php  
+    logout.php  
+    profile.php  
+    admin.php  
+  /uploads  
+  /config  
+    db.php  
+    payment.php  
+    courier.php  
+    mail.php  
+  /routes  
+    api.php  
+    web.php  
+  /controllers  
+  /models  
+  /views  
+  /api  
+  /includes  
+  composer.json  
+  .env  
+
+### 13. Deployment
+- Production-ready for Replit or VPS
+- Dockerfile & docker-compose (optional)
+- Logging & monitoring
+- Backup plan for MongoDB
+
+Deliver a **fully functional backend** implementing all above features in clean, modular PHP with MongoDB integration.

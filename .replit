@@ -1,14 +1,15 @@
-modules = ["nodejs-20", "php-8.2", "web"]
+modules = ["nodejs-20", "web", "nix", "python-3.11", "php-8.4"]
 run = "npm run dev"
 
 [nix]
-channel = "stable-24_05"
+channel = "stable-25_05"
+packages = ["php84Extensions.mongodb", "mongodb"]
 
 [deployment]
 run = ["sh", "-c", "php -S 0.0.0.0:5000 -t ."]
 
 [workflows]
-runButton = "Start Development Servers"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Start PHP Server"
@@ -32,6 +33,27 @@ args = "php -S 0.0.0.0:5000 -t ."
 task = "shell.exec"
 args = "npm run dev"
 
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "PHP Server"
+
+[[workflows.workflow]]
+name = "PHP Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd php-backend && php -S 0.0.0.0:5000 -t public/"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[ports]]
 localPort = 3000
 externalPort = 3000
@@ -43,3 +65,6 @@ externalPort = 3001
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[agent]
+expertMode = true
