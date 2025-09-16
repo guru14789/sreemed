@@ -247,11 +247,18 @@ php -S localhost:8001 -t public/
 - **Solution**: The backend is configured to handle CORS, but ensure frontend runs on port 5000
 - Check `vite.config.js` proxy configuration
 
-#### 4. "Authentication fails"
+#### 4. "Proxy configuration issues" (Registration/Auth failed)
+- **Solution**: Ensure the Vite proxy does NOT strip the `/api` prefix
+- The backend expects routes to start with `/api/`, so the proxy must preserve this
+- In `vite.config.js`, the proxy should NOT include a `rewrite` that removes `/api`
+- Correct configuration: `proxy: { '/api': { target: 'http://localhost:8000', changeOrigin: true, secure: false } }`
+- Incorrect: Any configuration that includes `rewrite: (path) => path.replace(/^\/api/, '')`
+
+#### 5. "Authentication fails"
 - **Solution**: Use demo credentials (admin@sreemeditec.com / admin123) in demo mode
 - Check JWT_SECRET is set in .env file
 
-#### 5. "Dependencies installation fails"
+#### 6. "Dependencies installation fails"
 - **Solution**: Clear cache and reinstall
 ```bash
 # PHP
