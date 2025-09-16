@@ -71,7 +71,7 @@ const Cart = () => {
               </div>
 
               {cartItems.map((item) => (
-                <div key={item.id} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center border-b pb-4 last:border-b-0 last:pb-0">
+                <div key={item._id} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center border-b pb-4 last:border-b-0 last:pb-0">
                   <div className="md:col-span-5 flex items-center space-x-4">
                     <img className="w-20 h-20 object-cover rounded-md flex-shrink-0" alt={item.name} src="https://images.unsplash.com/photo-1693264251393-d28f984ca283" />
                     <div>
@@ -84,11 +84,11 @@ const Cart = () => {
                   
                   <div className="md:col-span-3 flex justify-center items-center">
                     <div className="flex items-center border rounded-md">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.id, item.quantity - 1)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item._id, item.quantity - 1)}>
                         <Minus className="h-4 w-4" />
                       </Button>
                       <span className="px-3 text-center">{item.quantity}</span>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.id, item.quantity + 1)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item._id, item.quantity + 1)}>
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
@@ -96,7 +96,7 @@ const Cart = () => {
                   
                   <div className="md:col-span-2 flex items-center justify-end">
                     <span className="font-medium text-right w-full">₹{(item.price * item.quantity).toFixed(2)}</span>
-                     <Button variant="ghost" size="icon" className="text-red-500 hover:bg-red-50 hover:text-red-600" onClick={() => removeFromCart(item.id)}>
+                     <Button variant="ghost" size="icon" className="text-red-500 hover:bg-red-50 hover:text-red-600" onClick={() => removeFromCart(item._id)}>
                         <Trash2 className="h-5 w-5" />
                       </Button>
                   </div>
