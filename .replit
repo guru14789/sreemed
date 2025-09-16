@@ -3,7 +3,7 @@ run = "npm run dev"
 
 [nix]
 channel = "stable-25_05"
-packages = ["php84Extensions.mongodb", "mongodb"]
+packages = ["php84Extensions.mongodb", "mongodb", "php82Extensions.mongodb"]
 
 [deployment]
 run = ["sh", "-c", "php -S 0.0.0.0:5000 -t ."]
@@ -40,15 +40,31 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "PHP Server"
+args = "Backend API"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Frontend"
 
 [[workflows.workflow]]
-name = "PHP Server"
+name = "Backend API"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd php-backend && php -S 0.0.0.0:5000 -t public/"
+args = "cd php-backend && php -S 0.0.0.0:8000 -t public/"
+waitForPort = 8000
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "Frontend"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd client && npm run dev"
 waitForPort = 5000
 
 [workflows.workflow.metadata]
@@ -65,6 +81,10 @@ externalPort = 3001
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 8000
+externalPort = 8000
 
 [[ports]]
 localPort = 39619
